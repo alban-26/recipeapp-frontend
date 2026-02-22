@@ -1,0 +1,25 @@
+{
+  "SPICES": [
+    "Gewürze", "Gewürzmischungen", "Kräuter", "Salz",
+    "Meersalz", "Himalayasalz", "Rauchsalz", "Fleur de Sel",
+    "Pfeffer", "Schwarzer Pfeffer", "Weißer Pfeffer", "Grüner Pfeffer", "Rosa Pfeffer",
+    "Paprikapulver", "Edelsüß", "Rosenpaprika", "Geräuchertes Paprikapulver",
+    "Chili", "Chiliflocken", "Cayennepfeffer",
+    "Kurkuma", "Curry", "Garam Masala", "Tandoori", "Ras el Hanout",
+    "Zimt", "Zimtstangen", "Cassia",
+    "Muskatnuss", "Muskatblüte", "Macis",
+    "Ingwer", "Galangal",
+    "Koriander", "Koriandersamen", "Kreuzkümmel", "Cumin",
+    "Kardamom", "Nelken", "Piment", "Pfefferkörner",
+    "Sternanis", "Fenchelsamen", "Anis",
+    "Bockshornklee", "Senfsaat", "Gelber Senf", "Schwarzer Senf",
+    "Sesam", "Mohn",
+    "Vanille", "Vanilleschote", "Vanillezucker",
+    "Zitronengras", "Sumach", "Za'atar",
+    "Safran",
+    "Basilikum", "Oregano", "Thymian", "Rosmarin", "Majoram",
+    "Lorbeer", "Salbei", "Dill", "Estragon", "Schnittlauch", "Kerbel",
+    "Kräuter der Provence", "Italienische Kräuter",
+    "Wasabi", "Meerrettich"
+  ]
+}

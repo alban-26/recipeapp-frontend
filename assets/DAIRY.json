@@ -1,0 +1,18 @@
+{
+  "DAIRY": [
+    "Milch", "Vollmilch", "Fettarme Milch", "Magermilch", "Laktosefreie Milch", "Bio-Milch",
+    "Buttermilch", "Joghurt", "Naturjoghurt", "Griechischer Joghurt", "Skyr", "Fruchtjoghurt", "Trinkjoghurt",
+    "Kefir", "Ayran",
+    "Käse", "Hartkäse", "Weichkäse", "Schnittkäse", "Frischkäse", "Mozzarella", "Büffelmozzarella",
+    "Gouda", "Junger Gouda", "Alter Gouda",
+    "Emmentaler", "Cheddar", "Parmesan", "Pecorino", "Gruyère", "Edamer",
+    "Camembert", "Brie", "Ricotta", "Mascarpone", "Ziegenkäse", "Feta", "Blauschimmelkäse", "Roquefort", "Gorgonzola",
+    "Butter", "Gesalzene Butter", "Süße Butter", "Kräuterbutter",
+    "Sahne", "Schlagsahne", "Kochsahne", "Crème fraîche", "Crème double", "Saure Sahne", "Saucen-Halbrahm", "Halbrahm", "geriebener Käse",
+    "Quark", "Magerquark", "Speisequark",
+    "Kondensmilch", "Gezuckerte Kondensmilch", "Laktosefreie Kondensmilch",
+    "Milchalternativen", "Hafermilch", "Mandelmilch", "Sojamilch", "Reismilch", "Kokosmilch",
+    "Joghurtalternativen", "Sojajoghurt", "Mandeljoghurt", "Kokosjoghurt",
+    "Desserts", "Pudding", "Grießpudding", "Milchreis", "Crème brûlée"
+  ]
+}

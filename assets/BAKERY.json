@@ -1,0 +1,13 @@
+{
+  "BAKERY": [
+    "Backwaren", "Brot", "Weißbrot", "Vollkornbrot", "Roggenbrot", "Dinkelbrot", "Sauerteigbrot", "Baguette", "Ciabatta", "Focaccia", "Toastbrot",
+    "Brötchen", "Semmeln", "Mehrkornbrötchen", "Kaisersemmeln", "Laugenbrötchen", "Croissant", "Pain au chocolat", "Plundergebäck",
+    "Kuchen", "Torte", "Obstkuchen", "Rührkuchen", "Blechkuchen", "Muffin", "Cupcake", "Donut", "Brownie", "Biskuit",
+    "Kekse", "Butterkekse", "Haferkekse", "Schokoladenkekse", "Spritzgebäck", "Makronen", "Shortbread", "Amaretti",
+    "Gebäck", "Hefegebäck", "Blätterteig", "Apfeltasche", "Samosa", "Quiche", "Strudel",
+    "Brotaufstriche", "Zimtschnecke", "Nusszopf", "Plunderteilchen", "Pain aux raisins",
+    "Süßes Gebäck", "Berliner", "Krapfen", "Eclairs", "Profiteroles",
+    "Vollkornbackwaren", "Roggenbrötchen", "Dinkelbrötchen",
+    "Internationale Brotsorten", "Pita", "Naan", "Bagel", "Pretzel", "Brioche", "Hefe"
+  ]
+}

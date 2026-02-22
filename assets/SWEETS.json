@@ -1,0 +1,22 @@
+{
+  "SWEETS": [
+    "Süßigkeiten", "Naschereien", "Candy",
+    "Schokolade", "Vollmilchschokolade", "Zartbitterschokolade", "Weiße Schokolade", "Ruby-Schokolade",
+    "Gefüllte Schokolade", "Nuss-Schokolade", "Crunch-Schokolade",
+    "Pralinen", "Trüffel", "Likörpralinen",
+    "Bonbons", "Hustenbonbons", "Karamellbonbons", "Fruchtbonbons",
+    "Gummibärchen", "Fruchtgummi", "Saure Gummibärchen", "Veganes Fruchtgummi",
+    "Lakritz", "Salmiak", "Lakritzschnecken",
+    "Kekse", "Cookies", "Butterkekse", "Haferkekse", "Doppelkekse",
+    "Waffeln", "Neapolitaner", "Röllchenwaffeln",
+    "Riegel", "Schokoriegel", "Müsliriegel", "Proteinriegel", "Energieriegel",
+    "Marzipan", "Nougat", "Toffee", "Fudge",
+    "Kaubonbons", "Kaugummi", "Zuckerwatte",
+    "Lollis", "Lutscher", "Brause", "Brausepulver",
+    "Geleebananen", "Schaumküsse", "Marshmallows",
+    "Gebäck", "Feingebäck", "Lebkuchen", "Spekulatius", "Dominosteine",
+    "Dragées", "Schokodragees", "Nussdragées",
+    "Fruchtleder", "Trockenfrucht-Snacks",
+    "Vegane Süßigkeiten", "Zuckerfreie Süßigkeiten", "Bio-Süßigkeiten"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "TOYS": [
+    "Spielzeug", "Kinder", "Babyspielzeug", "Kleinkindspielzeug", "Lernspielzeug",
+    "Puppen", "Modepuppen", "Babypuppen", "Stoffpuppen",
+    "Actionfiguren", "Superheldenfiguren", "Tierfiguren", "Sammlerfiguren",
+    "Bauklötze", "Holzbausteine", "Steckbausteine", "Magnetbausteine", "Lego", "Duplo", "Playmobil",
+    "Brettspiele", "Gesellschaftsspiele", "Familienspiele", "Kartenspiele", "Würfelspiele",
+    "Puzzles", "Holzpuzzles", "3D-Puzzles", "Bodenpuzzles",
+    "Plüschtiere", "Kuscheltiere", "Stofftiere",
+    "Fahrzeuge", "Spielzeugautos", "Spielzeugeisenbahn", "Carrera", "Modellautos", "Bagger", "Traktoren",
+    "Kreativspielzeug", "Bastelsets", "Malsets", "Knete", "Modelliermasse", "Perlen", "Sticker",
+    "Rollenspiel", "Küchenspielzeug", "Werkbank", "Arztkoffer", "Kaufladen",
+    "Outdoor-Spielzeug", "Sandspielzeug", "Wasserpistolen", "Seifenblasen", "Drachen", "Bälle",
+    "Sportspielzeug", "Fußball", "Basketball", "Tischtennis", "Federball",
+    "Musikspielzeug", "Instrumente", "Xylophon", "Trommel", "Kinderkeyboard",
+    "Elektronisches Spielzeug", "Interaktives Spielzeug", "Roboter", "RC-Spielzeug", "Ferngesteuerte Autos",
+    "Experimentierkästen", "Zauberkästen", "Technikspielzeug", "MINT-Spielzeug"
+  ]
+}

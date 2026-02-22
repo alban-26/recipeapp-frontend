@@ -1,0 +1,30 @@
+{
+  "FRUITS": [
+    "Obst", "Früchte", "Kernobst", "Steinobst", "Beeren", "Zitrusfrüchte", "Exotische Früchte",
+    "Apfel", "Granny Smith", "Gala", "Braeburn",
+    "Birne", "Williamsbirne", "Conference",
+    "Banane", "Kochbanane",
+    "Orange", "Blutorange", "Mandarine", "Clementine",
+    "Zitrone", "Limette", "Grapefruit", "Pomelo",
+    "Erdbeere", "Himbeere", "Blaubeere", "Heidelbeere", "Johannisbeere", "Stachelbeere",
+    "Brombeere", "Cranberry",
+    "Trauben", "Weintrauben", "Rosinen",
+    "Ananas", "Mango", "Papaya", "Guave", "Maracuja", "Passionsfrucht", "Litschi", "Rambutan",
+    "Kiwi", "Goldkiwi",
+    "Pfirsich", "Nektarine", "Kirsche", "Sauerkirsche", "Aprikose", "Mirabelle", "Pflaume", "Zwetschge",
+    "Melone", "Wassermelone", "Honigmelone", "Cantaloupe",
+    "Feige", "Granatapfel", "Kaki", "Persimone",
+    "Dattel", "Getrocknete Datteln",
+    "Kokosnuss", "Kokosfleisch",
+    "Avocado",
+    "Quitte",
+    "Sternfrucht", "Carambola",
+    "Physalis",
+    "Durian",
+    "Jackfrucht",
+    "Tamarinde",
+    "Hagebutte",
+    "Acerola",
+    "Holunderbeere"
+  ]
+}

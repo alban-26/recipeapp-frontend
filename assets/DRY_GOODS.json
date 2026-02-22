@@ -1,0 +1,27 @@
+{
+  "DRY_GOODS": [
+    "Trockenwaren", "Vorratswaren", "Haltbare Lebensmittel",
+    "Nudeln", "Spaghetti", "Penne", "Fusilli", "Linguine", "Tagliatelle", "Lasagneplatten",
+    "Reis", "Langkornreis", "Basmatireis", "Jasminreis", "Vollkornreis", "Risottoreis",
+    "Couscous", "Bulgur", "Quinoa", "Amaranth", "Hirse", "Gnocchi",
+    "Haferflocken", "Zarte Haferflocken", "Kernige Haferflocken",
+    "Müsli", "Crunchy", "Granola",
+    "Mehl", "Weizenmehl", "Dinkelmehl", "Roggenmehl", "Vollkornmehl", "Maismehl",
+    "Zucker", "Weißer Zucker", "Brauner Zucker", "Rohrzucker", "Puderzucker", "Kokosblütenzucker",
+    "Linsen", "Rote Linsen", "Grüne Linsen", "Belugalinsen",
+    "Bohnen", "Weiße Bohnen", "Schwarze Bohnen", "Kidneybohnen", "Pintobohnen",
+    "Kichererbsen", "Getrocknete Kichererbsen",
+    "Erbsen", "Trockenerbsen",
+    "Konserven", "Dosentomaten", "Passierte Tomaten", "Tomatenmark", "Pizzasauce",
+    "Dosenmais", "Dosenerbsen", "Dosenbohnen", "Dosenkichererbsen",
+    "Brühe", "Gemüsebrühe", "Hühnerbrühe", "Rinderbrühe",
+    "Fertigsaucen", "Pestos", "Sojasauce", "Teriyaki",
+    "Öle", "Olivenöl", "Rapsöl", "Sonnenblumenöl", "Kokosöl",
+    "Essig", "Balsamico", "Apfelessig", "Weißweinessig",
+    "Backzutaten", "Backpulver", "Natron", "Vanillezucker", "Trockenhefe",
+    "Nüsse", "Mandeln", "Haselnüsse", "Walnüsse", "Cashews", "Erdnüsse",
+    "Samen", "Chiasamen", "Leinsamen", "Sesam",
+    "Trockenfrüchte", "Rosinen", "Cranberries", "Aprikosen", "Datteln",
+    "Instantprodukte", "Instantnudeln", "Tütensuppen", "Kartoffelpüree-Pulver"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "BOOKS": [
+    "Bücher", "Roman", "Sachbuch", "Kochbuch",
+    "Kinderbuch", "Krimi", "Fantasy",
+    "Science-Fiction", "E-Book", "Hörbuch"
+  ]
+}

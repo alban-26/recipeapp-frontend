@@ -1,0 +1,23 @@
+{
+  "VEGETABLES": [
+    "Gemüse", "Blattgemüse", "Wurzelgemüse", "Fruchtgemüse", "Kohl", "Zwiebelgemüse", "Knollengemüse",
+    "Karotte", "Möhre", "Pastinake", "Petersilienwurzel", "Rübe", "Rote Bete", "Steckrübe",
+    "Kartoffel", "Süßkartoffel", "Topinambur", "Yams",
+    "Zwiebel", "Knoblauch", "Lauch", "Porree", "Frühlingszwiebel", "Schalotte",
+    "Paprika", "Chili", "Peperoni",
+    "Tomate", "Gurke", "Zucchini", "Aubergine", "Kürbis", "Butternutkürbis", "Hokkaido",
+    "Brokkoli", "Blumenkohl", "Romanesco", "Kohlrabi",
+    "Spinat", "Mangold", "Salat", "Rucola", "Feldsalat", "Chicorée", "Endivie", "Radicchio",
+    "Grünkohl", "Rosenkohl", "Weißkohl", "Rotkohl", "Wirsing", "Spitzkohl", "Chinakohl", "Pak Choi",
+    "Mais", "Erbsen", "Zuckerschoten", "Bohnen", "Grüne Bohnen", "Kidneybohnen", "Schwarze Bohnen", "Linsen", "Kichererbsen",
+    "Pilze", "Champignons", "Pfifferlinge", "Steinpilze", "Austernpilze", "Shiitake", "Enoki", "Portobello",
+    "Spargel", "Artischocke", "Fenchel", "Sellerie", "Staudensellerie", "Knollensellerie",
+    "Rettich", "Radieschen", "Daikon",
+    "Rhabarber", "Okra",
+    "Algen", "Nori", "Wakame", "Kombu",
+    "Bambussprossen", "Sojasprossen", "Mungobohnensprossen",
+    "Kresse", "Gartenkresse", "Brunnenkresse",
+    "Löwenzahn", "Portulak",
+    "Zuckerrübe", "Meerrettich", "Wasabi"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "MEAT": [
+    "Fleisch", "Frischfleisch", "Rohfleisch", "Verarbeitetes Fleisch",
+    "Rindfleisch", "Rinderfilet", "Rumpsteak", "Entrecôte", "Tafelspitz", "Rinderhüfte", "Rinderbrust",
+    "Schweinefleisch", "Schweinefilet", "Schweinekotelett", "Schweinebauch", "Schweineschulter", "Schweinenacken",
+    "Geflügel", "Hähnchen", "Hähnchenbrust", "Hähnchenschenkel", "Hähnchenflügel", "Pute", "Putenbrust", "Putenkeule",
+    "Lamm", "Lammkotelett", "Lammkeule", "Lammfilet",
+    "Kalbfleisch", "Kalbsfilet", "Kalbsschnitzel", "Kalbsbraten",
+    "Hackfleisch", "Rinderhack", "Schweinehack", "Gemischtes Hack",
+    "Steak", "T-Bone-Steak", "Porterhouse-Steak", "Flanksteak", "Ribeye-Steak",
+    "Gulasch", "Rindergulasch", "Schweinegulasch",
+    "Braten", "Rinderbraten", "Schweinebraten", "Putenbraten", "Rollbraten",
+    "Wurst", "Brühwurst", "Rohwurst", "Kochwurst",
+    "Schinken", "Kochschinken", "Rohschinken", "Serrano-Schinken", "Parmaschinken",
+    "Salami", "Mailänder Salami", "Chorizo", "Pepperoni",
+    "Bratwurst", "Rostbratwurst", "Thüringer Bratwurst", "Nürnberger Bratwurst",
+    "Speck", "Bauchspeck", "Bacon", "Pancetta",
+    "Aufschnitt", "Fleischwurst", "Jagdwurst", "Lyoner", "Mortadella",
+    "Leberwurst", "Teewurst", "Blutwurst",
+    "Sülze", "Presskopf",
+    "Wildfleisch", "Reh", "Hirsch", "Wildschwein",
+    "Innereien", "Leber", "Herz", "Niere",
+    "Grillfleisch", "Mariniertes Fleisch", "BBQ-Fleisch"
+  ]
+}

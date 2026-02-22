@@ -1,0 +1,9 @@
+{
+  "SPORTS": [
+    "Sport", "Sportartikel", "Fitness",
+    "Hanteln", "Yogamatte",
+    "Sportbekleidung", "Turnschuhe",
+    "Fußball", "Basketball",
+    "Fahrrad", "Helm"
+  ]
+}

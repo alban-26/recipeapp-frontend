@@ -1,0 +1,20 @@
+{
+  "FROZEN": [
+    "Tiefkühlprodukte", "TK-Ware", "TK-Lebensmittel",
+    "TK-Gemüse", "TK-Obst",
+    "TK-Spinat", "TK-Brokkoli", "TK-Erbsen", "TK-Mais", "TK-Karotten", "TK-Blumenkohl",
+    "TK-Gemüsemischung", "TK-Wokgemüse", "TK-Grillgemüse",
+    "TK-Beerenmix", "TK-Erdbeeren", "TK-Himbeeren", "TK-Blaubeeren", "TK-Mango",
+    "Tiefkühlpizza", "TK-Pizza Salami", "TK-Pizza Margherita", "TK-Pizza Funghi", "TK-Pizza Hawaii",
+    "Tiefkühlpommes", "TK-Pommes", "TK-Kroketten", "TK-Wedges", "TK-Süßkartoffelpommes",
+    "TK-Fertiggerichte", "TK-Lasagne", "TK-Auflauf", "TK-Curry", "TK-Pfanne", "TK-Nudelgerichte", "TK-Reisgerichte",
+    "TK-Fisch", "TK-Lachs", "TK-Seelachs", "TK-Garnelen", "TK-Tintenfischringe",
+    "TK-Fleisch", "TK-Hähnchen", "TK-Frikadellen", "TK-Schnitzel",
+    "Eis", "Speiseeis", "Sorbet", "Frozen Yogurt",
+    "Eis am Stiel", "Wassereis", "Milcheis",
+    "TK-Kuchen", "TK-Torten", "TK-Blechkuchen",
+    "TK-Backwaren", "TK-Brötchen", "TK-Baguette", "TK-Croissants",
+    "TK-Kräuter", "TK-Petersilie", "TK-Schnittlauch", "TK-Dill",
+    "TK-Suppen", "TK-Brühen"
+  ]
+}

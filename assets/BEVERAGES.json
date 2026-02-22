@@ -1,0 +1,9 @@
+{
+  "BEVERAGES": [
+    "Getränke", "Wasser", "Mineralwasser", "Sprudel",
+    "Saft", "Orangensaft", "Apfelsaft",
+    "Multivitaminsaft", "Limonade", "Cola",
+    "Eistee", "Tee", "Kaffee", "Kakao",
+    "Energydrink", "Smoothie"
+  ]
+}
