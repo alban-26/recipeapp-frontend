@@ -18,7 +18,7 @@ class MealPlanApiClient extends BaseApiClient {
   // GET /mealplans/recipes
   // ---------------------------
   Future<List<RecipeRef>> getRecipes() async {
-    final response = await dio.get('$baseUrl/mealplans/recipes');
+    final response = await dio.get('$baseUrl/mealPlans/recipes');
     return (response.data as List)
         .map((e) => RecipeRef.fromJson(e))
         .toList();
@@ -28,7 +28,7 @@ class MealPlanApiClient extends BaseApiClient {
   // GET /mealplans
   // ---------------------------
   Future<List<MealPlan>> getMealPlans() async {
-    final response = await dio.get('$baseUrl/mealplans');
+    final response = await dio.get('$baseUrl/mealPlans');
     if (response.statusCode == 204 || response.data == null || response.data == "") {
       return [];
     }
@@ -41,7 +41,7 @@ class MealPlanApiClient extends BaseApiClient {
   // GET /mealplans/{id}
   // ---------------------------
   Future<MealPlan> getMealPlan(String id) async {
-    final response = await dio.get('$baseUrl/mealplans/$id');
+    final response = await dio.get('$baseUrl/mealPlans/$id');
     return MealPlan.fromJson(response.data);
   }
 
@@ -53,7 +53,7 @@ class MealPlanApiClient extends BaseApiClient {
         bool generateShoppingList = false,
       }) async {
     final response = await dio.post(
-      '$baseUrl/mealplans',
+      '$baseUrl/mealPlans',
       queryParameters: {
         'generateShoppingList': generateShoppingList,
       },
@@ -70,7 +70,7 @@ class MealPlanApiClient extends BaseApiClient {
       MealPlan mealPlan,
       ) async {
     final response = await dio.put(
-      '$baseUrl/mealplans/${mealPlan.id}',
+      '$baseUrl/mealPlans/${mealPlan.id}',
       data: mealPlan.toJson(),
     );
 
@@ -86,7 +86,7 @@ class MealPlanApiClient extends BaseApiClient {
     required DailyMealPlan dailyMealPlan,
   }) async {
     final response = await dio.put(
-      '$baseUrl/mealplans/$mealPlanId/dailyMealPlans/$dailyMealPlanId',
+      '$baseUrl/mealPlans/$mealPlanId/dailyMealPlans/$dailyMealPlanId',
       data: dailyMealPlan.toJson(),
     );
 
@@ -101,14 +101,14 @@ class MealPlanApiClient extends BaseApiClient {
     required String dailyMealPlanId,
   }) async {
     final response = await dio.delete(
-      '$baseUrl/mealplans/$mealPlanId/dailyMealPlans/$dailyMealPlanId',
+      '$baseUrl/mealPlans/$mealPlanId/dailyMealPlans/$dailyMealPlanId',
     );
 
     return response.statusCode ?? 204;
   }
 
   Future<int> deleteMealPlan(String id) async {
-    final response = await dio.delete('$baseUrl/mealplans/$id');
+    final response = await dio.delete('$baseUrl/mealPlans/$id');
 
     // The API returns 204 if successful — return it for consistency
     return response.statusCode ?? 204;
@@ -119,7 +119,7 @@ class MealPlanApiClient extends BaseApiClient {
 // ---------------------------
   Future<void> generateShoppingList(MealPlan mealPlan) async {
     await dio.post(
-      '$baseUrl/mealplans/generateShoppingList',
+      '$baseUrl/mealPlans/generateShoppingList',
       data: mealPlan.toJson(),
     );
   }
