@@ -144,7 +144,8 @@ class ShoppingListScreen extends StatelessWidget {
     final itemCount = list.shoppingItems.length;
     final checkedCount =
         list.shoppingItems.where((item) => item.checked).length;
-    final dateFormat = DateFormat.yMMMd();
+
+    final dateFormat = DateFormat('dd.MM.yyyy');
 
     return Dismissible(
       key: Key(list.id.toString()),

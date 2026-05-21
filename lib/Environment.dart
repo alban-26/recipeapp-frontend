@@ -6,10 +6,10 @@ class Environment {
 
   static void setEnvironment({required bool isProduction}) {
     if (isProduction) {
-      recipeApiBaseUrl = 'http://192.168.0.15:8000';     // Docker IP for release
-      shoppingListApiBaseUrl = 'http://192.168.0.15:8000';
-      mealPlanApiBaseUrl = 'http://192.168.0.15:8000';
-      authBaseUrl = 'http://192.168.0.15:8000';
+      recipeApiBaseUrl = 'https://loveyourmeal.cloud';     // Docker IP for release
+      shoppingListApiBaseUrl = 'https://loveyourmeal.cloud';
+      mealPlanApiBaseUrl = 'https://loveyourmeal.cloud';
+      authBaseUrl = 'https://loveyourmeal.cloud';
     } else {
       recipeApiBaseUrl = 'http://10.0.2.2:8000';          // Android emulator -> host
       shoppingListApiBaseUrl = 'http://10.0.2.2:8000';
