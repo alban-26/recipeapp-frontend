@@ -31,8 +31,15 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
       : super(CreateRecipeState(recipe: initialRecipe)) {
 
     on<LoadIngredientsRequested>((event, emit) async {
-      final ingredients = await IngredientsService.loadIngredients();
-      emit(state.copyWith(allIngredients: ingredients ?? {}));
+      final Map<String, List<String>> ingredients = await IngredientsService.loadIngredients();
+      final Map<String, List<String>> customIngredients = await dataRepo.loadIngredients();
+
+      final merged = <String, List<String>>{...ingredients};
+      for (final entry in customIngredients.entries) {
+        merged.putIfAbsent(entry.key, () => []).addAll(entry.value);
+      }
+
+      emit(state.copyWith(allIngredients: merged));
     });
     add(LoadIngredientsRequested());
 

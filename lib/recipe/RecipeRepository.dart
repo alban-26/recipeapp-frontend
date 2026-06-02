@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:recipeapp_frontend/StorageRepository.dart';
 
 import '../api/BaseApiClient.dart';
 import 'domain/Recipe.dart';
+import 'domain/RecipeIngredient.dart';
 
 class RecipeApiClient extends BaseApiClient {
   final StorageRepository storageRepository;
@@ -64,6 +67,27 @@ class RecipeApiClient extends BaseApiClient {
       throw Exception("Invalid response: ${response.data}");
     }
   }
+
+  Future<Map<String, List<String>>> loadIngredients() async {
+    final response = await dio.get('$baseUrl/recipes/ingredients');
+
+    List<dynamic> data = [];
+    if (response.data != null && response.data != '' && response.data != '[]') {
+      data = response.data is String
+          ? jsonDecode(response.data)
+          : response.data;
+    }
+
+    final Map<String, List<String>> result = {};
+    for (final item in data) {
+      final category = item['category'] as String;
+      final name = item['name'] as String;
+      result.putIfAbsent(category, () => []).add(name);
+    }
+
+    return result;
+  }
+
 }
 
 class RecipeRepository {
@@ -81,4 +105,6 @@ class RecipeRepository {
 
   Future<int?> removeRecipe(int recipeId) =>
       apiClient.deleteRecipe(recipeId.toString());
+
+  Future<Map<String, List<String>>> loadIngredients() => apiClient.loadIngredients();
 }
