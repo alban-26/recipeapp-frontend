@@ -272,7 +272,7 @@ List<Widget> _buildIngredientFields() {
 
           ingredientWidgets.add(
             Dismissible(
-              key: Key('ingredient_$index'),
+              key: ValueKey(ingredient.hashCode ^ index),
               onDismissed: (_) => context.read<CreateRecipeBloc>().add(DeleteIngredient(index)),
               background: Container(color: Colors.red, child: const Icon(Icons.delete, color: Colors.white)),
               child: Padding(
@@ -304,40 +304,38 @@ List<Widget> _buildIngredientFields() {
                               );
                             },
                             fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                              return StatefulBuilder(
-                                builder: (context, setState) {
-                                  bool isValid = flatIngredients.contains(textEditingController.text);
-
-                                  return TextFormField(
-                                    controller: textEditingController,
-                                    focusNode: focusNode,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w400,
-                                      color: Colors.black,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: 'Zutat',
-                                      filled: true,
-                                      fillColor: textEditingController.text.isEmpty
-                                          ? Colors.grey.shade200
-                                          : (isValid ? Colors.green.shade100 : Colors.red.shade100),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8.0),
-                                        borderSide: BorderSide.none,
-                                      ),
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                    ),
-                                    onChanged: (value) {
-                                      setState(() {}); // update fillColor dynamically
-                                      if (flatIngredients.contains(value)) {
-                                        String category = allIngredients.entries.firstWhere((entry) => entry.value.contains(value)).key;
-                                        context.read<CreateRecipeBloc>().add(
-                                          IngredientChanged(index: index, ingredient: value, productCategory: category),
-                                        );
-                                      }
-                                    },
-                                  );
+                              return TextFormField(
+                                controller: textEditingController,
+                                focusNode: focusNode,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.black,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Zutat',
+                                  filled: true,
+                                  fillColor: Colors.grey.shade200, // immer grau
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                ),
+                                onChanged: (value) {
+                                  if (flatIngredients.contains(value)) {
+                                    String category = allIngredients.entries
+                                        .firstWhere((entry) => entry.value.contains(value))
+                                        .key;
+                                    context.read<CreateRecipeBloc>().add(
+                                      IngredientChanged(index: index, ingredient: value, productCategory: category),
+                                    );
+                                  } else {
+                                    // freier Text → keine Kategorie
+                                    context.read<CreateRecipeBloc>().add(
+                                      IngredientChanged(index: index, ingredient: value, productCategory: 'OTHER'),
+                                    );
+                                  }
                                 },
                               );
                             },
@@ -462,7 +460,7 @@ List<Widget> _buildDescriptionFields() {
           final step = state.recipe.cookingInstructions[index];
           descWidgets.add(
             Dismissible(
-              key: Key('step_$index'),
+              key: ValueKey(step.hashCode ^ index),
               onDismissed: (_) => context.read<CreateRecipeBloc>().add(CookingInstructionDeleted(index)),
               background: Container(color: Colors.red, child: const Icon(Icons.delete, color: Colors.white)),
               child: Padding(

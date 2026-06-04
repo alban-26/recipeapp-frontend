@@ -159,6 +159,9 @@ class ShoppingListDetailScreen extends StatelessWidget {
                     );
                   },
                   fieldViewBuilder: (context, controller, focusNode, _) {
+                    controller.addListener(() {
+                      nameController.text = controller.text;
+                    });
                     return TextField(
                       controller: controller,
                       focusNode: focusNode,
@@ -211,11 +214,24 @@ class ShoppingListDetailScreen extends StatelessWidget {
                 final qty = double.tryParse(quantityController.text) ?? 1;
 
                 if (name.isNotEmpty) {
+                  // Kategorie aus Liste suchen, sonst OTHER
+                  final catKey = allIngredients.entries
+                      .firstWhere(
+                        (entry) => entry.value.contains(name),
+                    orElse: () => const MapEntry('OTHER', []),
+                  )
+                      .key;
+
+                  final resolvedCategory = ProductCategory.values.firstWhere(
+                        (c) => c.name.toLowerCase() == catKey.toLowerCase(),
+                    orElse: () => ProductCategory.OTHER,
+                  );
+
                   bloc.add(
                     AddShoppingListItemEvent(
                       ShoppingItem(
                         id: 0,
-                        product: Product(name: name, category: category),
+                        product: Product(name: name, category: resolvedCategory),
                         quantity: qty,
                         unit: unit.name,
                         checked: false,
