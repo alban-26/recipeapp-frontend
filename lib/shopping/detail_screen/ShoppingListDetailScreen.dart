@@ -54,22 +54,18 @@ class ShoppingListDetailScreen extends StatelessWidget {
                         enabled: false,
                         child: Text(
                           'Sortierung',
-                          style:
-                              Theme.of(context).textTheme.labelMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
+                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                       const PopupMenuDivider(),
-                      ...ProductOrderStrategy.values.map((strategy) {
-                        return PopupMenuItem<ProductOrderStrategy>(
-                          value: strategy,
-                          child: Text(strategy.label),
-                        );
-                      }).toList(),
+                      PopupMenuItem<ProductOrderStrategy>(
+                        value: ProductOrderStrategy.COMMON_ORDER,
+                        child: const Text('Beliebt'),
+                        onTap: () => context.read<ShoppingListDetailBloc>().add(ReorderByCommonEvent()),
+                      ),
                     ],
                   );
                 },

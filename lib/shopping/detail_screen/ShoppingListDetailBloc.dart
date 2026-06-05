@@ -82,6 +82,21 @@ class ShoppingListDetailBloc
       );
     });
 
+    on<ReorderByCommonEvent>((event, emit) async {
+      final currentState = state as LoadedShoppingListDetailState;
+
+      await dataRepo.reorderByCommon(currentState.shoppingList.id);
+
+      // aktualisierte Liste vom Server holen
+      final updatedList = await dataRepo.fetchShoppingList(currentState.shoppingList.id.toString());
+
+      emit(
+        LoadedShoppingListDetailState(
+          shoppingList: updatedList,
+        ),
+      );
+    });
+
 
     on<AddShoppingListItemEvent>((event, emit) async {
       final currentState = state as LoadedShoppingListDetailState;

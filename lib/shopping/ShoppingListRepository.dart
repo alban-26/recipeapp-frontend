@@ -106,6 +106,12 @@ class ShoppingListApiClient extends BaseApiClient {
     );
   }
 
+  Future<void> reorderByCommon(String listId) async {
+    await dio.post(
+      '$baseUrl/shoppingLists/$listId/shoppingItems/reorderByCommon',
+    );
+  }
+
 }
 
 class ShoppingListRepository {
@@ -126,6 +132,10 @@ class ShoppingListRepository {
           ReorderShoppingItemsRequest reorderShoppingItemsRequest) =>
       apiClient.reorderShoppingItem(
           shoppingListId.toString(), reorderShoppingItemsRequest);
+
+  Future<void> reorderByCommon(int shoppingListId) =>
+      apiClient.reorderByCommon(
+          shoppingListId.toString());
 
   Future<int?> removeShoppingList(int shoppingListId) =>
       apiClient.deleteShoppingList(shoppingListId.toString());

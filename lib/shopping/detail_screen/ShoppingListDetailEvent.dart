@@ -45,3 +45,7 @@ class ReorderShoppingListItemsEvent extends ShoppingListDetailEvent {
   });
 }
 
+class ReorderByCommonEvent extends ShoppingListDetailEvent {
+
+}
+
