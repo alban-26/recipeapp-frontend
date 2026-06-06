@@ -41,7 +41,7 @@ dependencies:
   numberpicker: ^2.1.2
   uuid: ^4.5.1
   http: ^1.3.0 # Minor update available (consider upgrading to 1.1.2 if Flutter 3.16+)
-  intl: ^0.20.2 # No update needed
+  intl: ^0.19.0 # No update needed
   font_awesome_flutter: ^10.4.0
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -50,6 +50,8 @@ dependencies:
   google_fonts: ^6.1.0
 
   image: ^4.0.17
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +74,7 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  generate: true
 
   #To add assets to your application, add an assets section, like this:
   assets:

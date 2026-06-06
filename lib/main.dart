@@ -14,7 +14,8 @@ import 'api/AuthClient.dart';
 import 'auth/AuthRepository.dart';
 import 'meal_plan/MealPlanApiClient.dart';
 import 'meal_plan/MealPlanRepository.dart';
-
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart';
 
 final ThemeData appTheme = ThemeData(
   bottomNavigationBarTheme: BottomNavigationBarThemeData(
@@ -140,7 +141,16 @@ class MyApp extends StatelessWidget {
             theme: appTheme,
             debugShowCheckedModeBanner: false,
             themeMode: ThemeMode.system,
-
+            locale: const Locale('de'),
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('de'),
+              Locale('en'),
+            ],
             home: AppNavigator(),
           )),
     );

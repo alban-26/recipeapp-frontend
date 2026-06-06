@@ -244,20 +244,9 @@ class AddMealForm extends StatefulWidget {
 class _AddMealFormState extends State<AddMealForm> {
   RecipeRef? selectedRecipe;
   int servings = 1;
-  late TextEditingController controller;
   String currentText = "";
 
-  @override
-  void initState() {
-    super.initState();
-    controller = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
+  // controller NICHT mehr selbst erstellen — Autocomplete verwaltet ihn
 
   @override
   Widget build(BuildContext context) {
@@ -269,11 +258,8 @@ class _AddMealFormState extends State<AddMealForm> {
             if (textEditingValue.text.isEmpty) {
               return const Iterable<RecipeRef>.empty();
             }
-
             return widget.state.availableRecipes.where(
-                  (r) => r.name
-                  .toLowerCase()
-                  .contains(textEditingValue.text.toLowerCase()),
+                  (r) => r.name.toLowerCase().contains(textEditingValue.text.toLowerCase()),
             );
           },
           displayStringForOption: (r) => r.name,
@@ -284,8 +270,7 @@ class _AddMealFormState extends State<AddMealForm> {
             });
           },
           fieldViewBuilder: (context, textController, focusNode, _) {
-            controller = textController;
-
+            // NICHT mehr: controller = textController
             return TextField(
               controller: textController,
               focusNode: focusNode,
@@ -309,22 +294,16 @@ class _AddMealFormState extends State<AddMealForm> {
             DropdownButton<int>(
               value: servings,
               items: [1, 2, 3, 4, 5]
-                  .map(
-                    (e) => DropdownMenuItem(
-                  value: e,
-                  child: Text("$e Portion${e > 1 ? 'en' : ''}"),
-                ),
-              )
+                  .map((e) => DropdownMenuItem(
+                value: e,
+                child: Text("$e Portion${e > 1 ? 'en' : ''}"),
+              ))
                   .toList(),
               onChanged: (v) {
-                if (v != null) {
-                  setState(() => servings = v);
-                }
+                if (v != null) setState(() => servings = v);
               },
             ),
-
             const Spacer(),
-
             ElevatedButton.icon(
               icon: const Icon(Icons.add),
               label: const Text("Hinzufügen"),
@@ -332,10 +311,7 @@ class _AddMealFormState extends State<AddMealForm> {
                   ? null
                   : () {
                 final recipe = selectedRecipe ??
-                    RecipeRef(
-                      id: 0,
-                      name: currentText.trim(),
-                    );
+                    RecipeRef(id: 0, name: currentText.trim());
                 context.read<CreateMealPlanBloc>().add(
                   AddMealToDay(
                     dailyId: widget.day.id,
@@ -348,7 +324,6 @@ class _AddMealFormState extends State<AddMealForm> {
                   selectedRecipe = null;
                   currentText = "";
                   servings = 1;
-                  controller.clear();
                 });
               },
             ),

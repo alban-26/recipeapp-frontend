@@ -166,7 +166,6 @@ class MealPlanScreen extends StatelessWidget {
     );
   }
 
-
   Future<void> _showCreateMealPlanDialog(BuildContext context) async {
     DateTimeRange? range;
 
@@ -186,20 +185,14 @@ class MealPlanScreen extends StatelessWidget {
                         : "${_format(range!.start)} – ${_format(range!.end)}"),
                     trailing: const Icon(Icons.calendar_month),
                     onTap: () async {
-                      // Dialog kurz schließen damit context stimmt
-                      Navigator.of(ctx).pop();
-
                       final picked = await showDateRangePicker(
                         context: context,
                         firstDate: DateTime(2020),
                         lastDate: DateTime(2100),
                         initialDateRange: range,
                       );
-
-                      // Dialog wieder öffnen mit dem Ergebnis
-                      if (context.mounted) {
-                        range = picked ?? range;
-                        _showCreateMealPlanDialogWithRange(context, range);
+                      if (picked != null) {
+                        setState(() => range = picked);
                       }
                     },
                   ),
@@ -233,70 +226,6 @@ class MealPlanScreen extends StatelessWidget {
       },
     );
   }
-
-  Future<void> _showCreateMealPlanDialogWithRange(BuildContext context, DateTimeRange? initialRange) async {
-    DateTimeRange? range = initialRange;
-
-    await showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setState) {
-            return AlertDialog(
-              title: const Text("Essensplan erstellen"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    title: Text(range == null
-                        ? "Zeitraum wählen"
-                        : "${_format(range!.start)} – ${_format(range!.end)}"),
-                    trailing: const Icon(Icons.calendar_month),
-                    onTap: () async {
-                      Navigator.of(ctx).pop();
-                      final picked = await showDateRangePicker(
-                        context: context,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
-                        initialDateRange: range,
-                      );
-                      if (context.mounted) {
-                        _showCreateMealPlanDialogWithRange(context, picked ?? range);
-                      }
-                    },
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text("Abbrechen"),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (range != null) {
-                      final newMealPlan = MealPlan(
-                        id: 0,
-                        startDate: range!.start,
-                        endDate: range!.end,
-                        dailyMealPlans: [],
-                      );
-                      Navigator.of(ctx).pop();
-                      BlocProvider.of<MealPlanNavigatorCubit>(context)
-                          .showCreateMealPlan(newMealPlan);
-                    }
-                  },
-                  child: const Text("OK"),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-
 
   String _format(DateTime date) {
     return "${date.day}.${date.month}.${date.year}";
