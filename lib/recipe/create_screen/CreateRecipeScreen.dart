@@ -272,7 +272,7 @@ List<Widget> _buildIngredientFields() {
 
           ingredientWidgets.add(
             Dismissible(
-              key: ValueKey(index),
+              key: ValueKey(ingredient.id),
               onDismissed: (_) => context.read<CreateRecipeBloc>().add(DeleteIngredient(index)),
               background: Container(color: Colors.red, child: const Icon(Icons.delete, color: Colors.white)),
               child: Padding(
@@ -291,7 +291,7 @@ List<Widget> _buildIngredientFields() {
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Autocomplete<String>(
-              /*              initialValue: TextEditingValue(text: initialIngredient),*/
+                            initialValue: TextEditingValue(text: initialIngredient),
                             optionsBuilder: (textEditingValue) {
                               if (textEditingValue.text.isEmpty) return const Iterable<String>.empty();
                               return flatIngredients.where((option) =>

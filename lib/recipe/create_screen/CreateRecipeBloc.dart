@@ -107,7 +107,7 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
     on<IngredientAdded>((event, emit) async {
       final List<RecipeIngredient> updatedIngredients =
           List.from(state.recipe.recipeIngredients)
-            ..add(RecipeIngredient(name: '', category: '', unit: '', quantity: 0));
+            ..add(RecipeIngredient(id: const Uuid().v4(), name: '', category: '', unit: '', quantity: 0));
 
       final Recipe updatedRecipe =
           state.recipe.copyWith(recipeIngredients: updatedIngredients);
