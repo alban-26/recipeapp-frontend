@@ -202,7 +202,8 @@ class ShoppingListScreen extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2, // oder mehr
+                        softWrap: true,
                       ),
                     ),
                     Text(

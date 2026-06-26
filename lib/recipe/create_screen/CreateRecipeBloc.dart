@@ -145,6 +145,7 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
           List<CookingInstruction>.from(state.recipe.cookingInstructions)
             ..add(
               CookingInstruction(
+                id: Uuid().v4(),
                 instruction: '',
                 recipeIngredients: [],
               ),

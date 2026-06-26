@@ -12,6 +12,7 @@ import 'AppNavigator.dart';
 import 'Environment.dart';
 import 'api/AuthClient.dart';
 import 'auth/AuthRepository.dart';
+import 'common/SplashScreen.dart';
 import 'meal_plan/MealPlanApiClient.dart';
 import 'meal_plan/MealPlanRepository.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -140,6 +141,7 @@ class MyApp extends StatelessWidget {
           child: MaterialApp(
             theme: appTheme,
             debugShowCheckedModeBanner: false,
+
             themeMode: ThemeMode.system,
             locale: const Locale('de'),
             localizationsDelegates: const [

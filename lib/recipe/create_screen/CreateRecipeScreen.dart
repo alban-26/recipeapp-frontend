@@ -460,7 +460,7 @@ List<Widget> _buildDescriptionFields() {
           final step = state.recipe.cookingInstructions[index];
           descWidgets.add(
             Dismissible(
-              key: ValueKey(index),
+              key: ValueKey(step.id),
               onDismissed: (_) => context.read<CreateRecipeBloc>().add(CookingInstructionDeleted(index)),
               background: Container(color: Colors.red, child: const Icon(Icons.delete, color: Colors.white)),
               child: Padding(
@@ -477,7 +477,7 @@ List<Widget> _buildDescriptionFields() {
                       initialValue: step.instruction,
                       decoration: InputDecoration(border: InputBorder.none, hintText: '${index + 1}. Schritt'),
                       onChanged: (value) => context.read<CreateRecipeBloc>().add(
-                          CookingInstructionChanged(index: index, cookingInstruction: CookingInstruction(instruction: value, recipeIngredients: []))),
+                          CookingInstructionChanged(index: index, cookingInstruction: CookingInstruction(id: step.id, instruction: value, recipeIngredients: []))),
                     ),
                   ),
                 ),
