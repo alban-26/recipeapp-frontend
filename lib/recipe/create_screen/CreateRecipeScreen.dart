@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ import '../navigation/RecipeNavigatorCubit.dart';
 import 'CreateRecipeBloc.dart';
 import 'CreateRecipeEvent.dart';
 import 'CreateRecipeState.dart';
+import 'package:http/http.dart' as http;
 
 class CreateRecipeScreen extends StatefulWidget {
   final Recipe recipe;
@@ -28,6 +30,26 @@ class CreateRecipeScreen extends StatefulWidget {
 }
 
 class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
+
+  late final CreateRecipeBloc _bloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _bloc = CreateRecipeBloc(
+      dataRepo: context.read<RecipeRepository>(),
+      storageRepo: context.read<StorageRepository>(),
+      recipeNavigatorCubit: context.read<RecipeNavigatorCubit>(),
+      initialRecipe: widget.recipe,
+    );
+  }
+
+  @override
+  void dispose() {
+    _bloc.close();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -61,6 +83,13 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
               icon: const Icon(Icons.arrow_back),
               onPressed: () => Navigator.of(context).pop(),
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.document_scanner_outlined),
+                tooltip: 'Rezept scannen',
+                onPressed: _scanRecipe,
+              ),
+            ],
           ),
           body: SingleChildScrollView(
             child: _createRecipePage(context),
@@ -69,6 +98,52 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       ),
     );
   }
+
+
+  Future<void> _scanRecipe() async {
+    final ImagePicker picker = ImagePicker();
+
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 90,
+    );
+
+    if (image == null) return;
+
+    final request = http.MultipartRequest(
+      "POST",
+      Uri.parse("http://192.168.0.15:8091/api/v1/recipes/extract"),
+    );
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        "file",
+        image.path,
+      ),
+    );
+
+    try {
+      final response = await request.send();
+
+      if (response.statusCode != 200) {
+        throw Exception("OCR Fehler: ${response.statusCode}");
+      }
+
+      final body = await response.stream.bytesToString();
+      final json = jsonDecode(body);
+
+      _bloc.add(RecipeScanned(json));
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Scan fehlgeschlagen: $e"),
+        ),
+      );
+    }
+  }
+
 }
 
 Widget _createRecipePage(BuildContext buildContext) {

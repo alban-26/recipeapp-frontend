@@ -102,3 +102,9 @@ class CookingInstructionDeleted extends CreateRecipeEvent {
 
   CookingInstructionDeleted(this.index);
 }
+
+class RecipeScanned extends CreateRecipeEvent {
+  final Map<String, dynamic> recipe;
+
+  RecipeScanned(this.recipe);
+}

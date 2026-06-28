@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:bloc/bloc.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:recipeapp_frontend/recipe/RecipeRepository.dart';
@@ -29,6 +30,21 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
       required this.recipeNavigatorCubit,
       required Recipe initialRecipe})
       : super(CreateRecipeState(recipe: initialRecipe)) {
+    on<RecipeScanned>((event, emit) {
+      final json = event.recipe;
+
+      final recipe = state.recipe.copyWith(
+        name: json["name"],
+        portions: json["portions"],
+        duration: json["duration"],
+      );
+
+      emit(
+        state.copyWith(
+          recipe: recipe,
+        ),
+      );
+    });
 
     on<LoadIngredientsRequested>((event, emit) async {
       final Map<String, List<String>> ingredients = await IngredientsService.loadIngredients();
