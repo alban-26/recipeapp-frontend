@@ -138,7 +138,7 @@ class Recipe extends Equatable {
           .map((item) => RecipeIngredient(
         id: const Uuid().v4(),
         name: item['name'] ?? '',
-        category: '',
+        category: 'OTHER',
         quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
         unit: item['unit'] ?? '',
       ))

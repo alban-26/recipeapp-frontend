@@ -32,6 +32,7 @@ class CreateRecipeScreen extends StatefulWidget {
 class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
 
   late final CreateRecipeBloc _bloc;
+  final _nameController = TextEditingController();
 
   @override
   void initState() {
@@ -47,6 +48,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
   @override
   void dispose() {
     _bloc.close();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -56,6 +58,14 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       value: _bloc,
       child: BlocListener<CreateRecipeBloc, CreateRecipeState>(
         listener: (context, state) {
+          if (_nameController.text != state.recipe.name) {
+            _nameController.value = TextEditingValue(
+              text: state.recipe.name,
+              selection: TextSelection.collapsed(
+                offset: state.recipe.name.length,
+              ),
+            );
+          }
           if (state.imageSourceActionSheetIsVisible) {
             _showImageSourceActionSheet(context);
           }
@@ -88,7 +98,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
             ],
           ),
           body: SingleChildScrollView(
-            child: _createRecipePage(context),
+            child: _createRecipePage(context, _nameController),
           ),
         ),
       ),
@@ -142,7 +152,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
 
 }
 
-Widget _createRecipePage(BuildContext buildContext) {
+Widget _createRecipePage(BuildContext buildContext, TextEditingController nameController) {
   return BlocBuilder<CreateRecipeBloc, CreateRecipeState>(
     builder: (context, state) {
       return SafeArea(
@@ -151,7 +161,7 @@ Widget _createRecipePage(BuildContext buildContext) {
           children: [
             Center(child: _recipePictureWithOverlay(context)),
             const SizedBox(height: 20),
-            _nameField(),
+            _nameField(context, nameController),
             Center(child: _portionsAndDuration()),
             const SizedBox(height: 20),
             const Padding(
@@ -225,30 +235,34 @@ Widget _recipePictureWithOverlay(BuildContext context) {
 
 // -------------------- Name Field --------------------
 
-Widget _nameField() {
-  return BlocBuilder<CreateRecipeBloc, CreateRecipeState>(
-    builder: (context, state) {
-      return Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: TextFormField(
-          decoration: InputDecoration(
-            hintText: 'Rezept Name',
-            filled: true,
-            fillColor: Colors.grey[200],
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.0),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-          ),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.normal),
-          initialValue: state.recipe.name,
-          onChanged: (value) => context.read<CreateRecipeBloc>().add(
-            RecipeNameChanged(recipeName: value),
-          ),
+Widget _nameField(BuildContext context, TextEditingController nameController) {
+  return Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: TextFormField(
+      controller: nameController,
+      decoration: InputDecoration(
+        hintText: 'Rezept Name',
+        filled: true,
+        fillColor: Colors.grey[200],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: BorderSide.none,
         ),
-      );
-    },
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: 16,
+        ),
+      ),
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.normal,
+      ),
+      onChanged: (value) {
+        context.read<CreateRecipeBloc>().add(
+          RecipeNameChanged(recipeName: value),
+        );
+      },
+    ),
   );
 }
 

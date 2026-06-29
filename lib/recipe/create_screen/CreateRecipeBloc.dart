@@ -236,11 +236,13 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
       if (state.recipe.id == 0) {
         int insertedId = await dataRepo.addRecipe(state.recipe);
 
-        storageRepo.uploadImage(
-          state.imagePath!, // Uint8List
-          insertedId.toString(),
-          "/recipes/$insertedId/image",
-        );
+        if (state.imagePath != null) {
+          await storageRepo.uploadImage(
+            state.imagePath!,
+            insertedId.toString(),
+            "/recipes/$insertedId/image",
+          );
+        }
 
 
         emit(state.copyWith(formStatus: SubmissionSuccess()));
