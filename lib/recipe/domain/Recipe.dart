@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:recipeapp_frontend/StorageRepository.dart';
 import 'package:recipeapp_frontend/recipe/domain/CookingInstruction.dart';
 import 'package:recipeapp_frontend/recipe/domain/RecipeIngredient.dart';
+import 'package:uuid/uuid.dart';
 
 class Recipe extends Equatable {
   final int id;
@@ -119,6 +120,37 @@ class Recipe extends Equatable {
       cookingInstructions: cookingInstructions,
       portions: portions,
       duration: duration,
+      image: null,
+    );
+  }
+
+  factory Recipe.fromLLMJson(Map<String, dynamic> json) {
+    return Recipe(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      portions: json['portions'] ?? 1,
+
+      duration: json['duration'] is String
+          ? Recipe.parseISODuration(json['duration'])
+          : Duration(minutes: (json['duration'] as num?)?.toInt() ?? 0),
+
+      recipeIngredients: (json['ingredients'] as List<dynamic>? ?? [])
+          .map((item) => RecipeIngredient(
+        id: const Uuid().v4(),
+        name: item['name'] ?? '',
+        category: '',
+        quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
+        unit: item['unit'] ?? '',
+      ))
+          .toList(),
+
+      cookingInstructions: (json['instructions'] as List<dynamic>? ?? [])
+          .map((item) => CookingInstruction(
+        instruction: item.toString(),
+        recipeIngredients: const [],
+      ))
+          .toList(),
+
       image: null,
     );
   }

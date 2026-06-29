@@ -52,22 +52,18 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => CreateRecipeBloc(
-        dataRepo: context.read<RecipeRepository>(),
-        storageRepo: context.read<StorageRepository>(),
-        recipeNavigatorCubit: context.read<RecipeNavigatorCubit>(),
-        initialRecipe: widget.recipe,
-      ),
+    return BlocProvider.value(
+      value: _bloc,
       child: BlocListener<CreateRecipeBloc, CreateRecipeState>(
         listener: (context, state) {
           if (state.imageSourceActionSheetIsVisible) {
             _showImageSourceActionSheet(context);
           }
+
           if (state.formStatus is SubmissionSuccess) {
-            //Navigator.of(context).pop();
             context.read<RecipeNavigatorCubit>().showRecipeDetail(state.recipe);
           }
+
           if (state.formStatus is SubmissionFailed) {
             final error = (state.formStatus as SubmissionFailed).exception;
             ScaffoldMessenger.of(context).showSnackBar(

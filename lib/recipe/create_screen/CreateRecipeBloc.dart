@@ -31,19 +31,10 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
       required Recipe initialRecipe})
       : super(CreateRecipeState(recipe: initialRecipe)) {
     on<RecipeScanned>((event, emit) {
-      final json = event.recipe;
 
-      final recipe = state.recipe.copyWith(
-        name: json["name"],
-        portions: json["portions"],
-        duration: json["duration"],
-      );
+      final recipe = Recipe.fromLLMJson(event.recipe);
 
-      emit(
-        state.copyWith(
-          recipe: recipe,
-        ),
-      );
+      emit(state.copyWith(recipe: recipe));
     });
 
     on<LoadIngredientsRequested>((event, emit) async {
