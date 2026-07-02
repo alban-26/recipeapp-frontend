@@ -23,6 +23,7 @@ class CreateRecipeState {
   final Recipe recipe;
 
   final Map<String, List<String>> allIngredients;
+  final bool isScanning;
 
   CreateRecipeState({
     this.imageToUpload,
@@ -35,6 +36,7 @@ class CreateRecipeState {
     imageError = '',
     required this.recipe,
     this.allIngredients = const {},
+    this.isScanning = false
   }) : imageSourceActionSheetIsVisible = imageSourceActionSheetIsVisible;
 
   CreateRecipeState copyWith({
@@ -53,6 +55,7 @@ class CreateRecipeState {
     bool? imageChanged,
     Recipe? recipe,
     Map<String, List<String>>? allIngredients,
+    bool? isScanning
   }) {
     return CreateRecipeState(
       imageToUpload: imageToUpload ?? this.imageToUpload,
@@ -64,6 +67,7 @@ class CreateRecipeState {
       imageError: imageError ?? this.imageError,
       recipe: recipe ?? this.recipe,
       allIngredients: allIngredients ?? this.allIngredients ?? const {},
+      isScanning: isScanning ?? this.isScanning
     );
   }
 
@@ -80,6 +84,7 @@ class CreateRecipeState {
     bool? imageSourceActionSheetIsVisible,
     String? imageError,
     Map<String, List<String>>? allIngredients,
+    bool? isScanning
   }) {
     return CreateRecipeState(
       imageToUpload: imageToUpload ?? this.imageToUpload,
@@ -89,6 +94,7 @@ class CreateRecipeState {
       imageError: imageError ?? this.imageError,
       recipe: recipe,
       allIngredients: allIngredients ?? this.allIngredients,
+        isScanning: isScanning ?? this.isScanning
     );
   }
 }

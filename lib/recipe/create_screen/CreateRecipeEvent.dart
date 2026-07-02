@@ -43,6 +43,9 @@ class ProvideImagePath extends CreateRecipeEvent {
   ProvideImagePath({required this.imagePath});
 }
 
+class ScanRecipeStarted extends CreateRecipeEvent {}
+class ScanRecipeFinished extends CreateRecipeEvent {}
+
 class SaveCreateRecipeChanges extends CreateRecipeEvent {}
 
 class CookingInstructionChanged extends CreateRecipeEvent {

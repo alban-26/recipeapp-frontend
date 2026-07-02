@@ -12,6 +12,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../StorageRepository.dart';
 import '../../common/form_submission_status.dart';
+import '../../shopping/domain/Unit.dart';
 import '../domain/Recipe.dart';
 import '../navigation/RecipeNavigatorCubit.dart';
 import '../services/ingredients_service.dart';
@@ -229,6 +230,14 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
       final Recipe updatedRecipe =
           state.recipe.copyWith(portions: state.recipe.portions - 1);
       emit(state.copyWith(recipe: updatedRecipe));
+    });
+
+    on<ScanRecipeStarted>((event, emit) {
+      emit(state.copyWith(isScanning: true));
+    });
+
+    on<ScanRecipeFinished>((event, emit) {
+      emit(state.copyWith(isScanning: false));
     });
 
     on<SaveCreateRecipeChanges>((event, emit) async {

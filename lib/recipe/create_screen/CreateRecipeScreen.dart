@@ -20,6 +20,31 @@ import 'CreateRecipeEvent.dart';
 import 'CreateRecipeState.dart';
 import 'package:http/http.dart' as http;
 
+
+class _ModernLoadingIndicator extends StatelessWidget {
+  const _ModernLoadingIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const CircularProgressIndicator(
+          strokeWidth: 3,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          "Rezept wird analysiert...",
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.9),
+            fontSize: 16,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class CreateRecipeScreen extends StatefulWidget {
   final Recipe recipe;
 
@@ -97,13 +122,33 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
               ),
             ],
           ),
-          body: SingleChildScrollView(
-            child: _createRecipePage(context, _nameController),
+          body: Stack(
+            children: [
+              SingleChildScrollView(
+                child: _createRecipePage(context, _nameController),
+              ),
+
+              BlocBuilder<CreateRecipeBloc, CreateRecipeState>(
+                builder: (context, state) {
+                  if (!state.isScanning) return const SizedBox.shrink();
+
+                  return Container(
+                    color: Colors.black.withOpacity(0.4),
+                    child: const Center(
+                      child: _ModernLoadingIndicator(),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
+
         ),
       ),
     );
   }
+
+
 
 
   Future<void> _scanRecipe() async {
@@ -111,10 +156,15 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
 
     final XFile? image = await picker.pickImage(
       source: ImageSource.camera,
-      imageQuality: 90,
+      imageQuality: 60,
+      maxWidth: 1280,
+      maxHeight: 1280,
     );
 
     if (image == null) return;
+
+    // 👉 START LOADING
+    _bloc.add(ScanRecipeStarted());
 
     final request = http.MultipartRequest(
       "POST",
@@ -122,10 +172,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     );
 
     request.files.add(
-      await http.MultipartFile.fromPath(
-        "file",
-        image.path,
-      ),
+      await http.MultipartFile.fromPath("file", image.path),
     );
 
     try {
@@ -143,10 +190,11 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Scan fehlgeschlagen: $e"),
-        ),
+        SnackBar(content: Text("Scan fehlgeschlagen: $e")),
       );
+    } finally {
+      // 👉 STOP LOADING
+      _bloc.add(ScanRecipeFinished());
     }
   }
 

@@ -6,6 +6,8 @@ import 'package:recipeapp_frontend/recipe/domain/CookingInstruction.dart';
 import 'package:recipeapp_frontend/recipe/domain/RecipeIngredient.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../shopping/domain/Unit.dart';
+
 class Recipe extends Equatable {
   final int id;
   final String name;
@@ -124,6 +126,8 @@ class Recipe extends Equatable {
     );
   }
 
+
+
   factory Recipe.fromLLMJson(Map<String, dynamic> json) {
     return Recipe(
       id: json['id'] ?? 0,
@@ -140,7 +144,7 @@ class Recipe extends Equatable {
         name: item['name'] ?? '',
         category: 'OTHER',
         quantity: (item['quantity'] as num?)?.toDouble() ?? 0,
-        unit: item['unit'] ?? '',
+        unit: parseUnitSafe(item['unit'])?.label ?? '',
       ))
           .toList(),
 
@@ -155,7 +159,17 @@ class Recipe extends Equatable {
     );
   }
 
+
+
   @override
   List<Object> get props =>
       [id, name, recipeIngredients, cookingInstructions, portions, duration];
+}
+Unit? parseUnitSafe(String? raw) {
+  if (raw == null) return null;
+
+  for (final u in Unit.values) {
+    if (u.label == raw) return u;
+  }
+  return null;
 }
