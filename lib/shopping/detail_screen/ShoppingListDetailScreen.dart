@@ -51,20 +51,17 @@ class ShoppingListDetailScreen extends StatelessWidget {
                     },
                     itemBuilder: (context) => [
                       PopupMenuItem<ProductOrderStrategy>(
-                        enabled: false,
-                        child: Text(
-                          'Sortierung',
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem<ProductOrderStrategy>(
                         value: ProductOrderStrategy.COMMON_ORDER,
-                        child: const Text('Beliebt'),
-                        onTap: () => context.read<ShoppingListDetailBloc>().add(ReorderByCommonEvent()),
+                        onTap: () => context
+                            .read<ShoppingListDetailBloc>()
+                            .add(ReorderByCommonEvent()),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.swap_vert, size: 20),
+                            SizedBox(width: 12),
+                            Text('Nach Beliebtheit sortieren'),
+                          ],
+                        ),
                       ),
                     ],
                   );
