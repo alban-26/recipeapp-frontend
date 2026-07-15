@@ -168,7 +168,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
 
     final request = http.MultipartRequest(
       "POST",
-      Uri.parse("http://192.168.0.15:8091/api/v1/recipes/extract"),
+      Uri.parse("https://loveyourmeal.cloud/api/v1/recipes/extract"),
     );
 
     request.files.add(

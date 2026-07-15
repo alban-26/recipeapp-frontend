@@ -6,6 +6,7 @@ import 'RecipesState.dart';
 
 class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
   final RecipeRepository dataRepo;
+  static const int _pageSize = 20;
 
   RecipesBloc({required this.dataRepo}) : super(LoadingRecipesState()) {
 
@@ -13,15 +14,53 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
     on<LoadRecipesEvent>((event, emit) async {
       emit(LoadingRecipesState());
       try {
-        final recipes = await dataRepo.fetchRecipes();
+        final page = await dataRepo.fetchRecipes(page: 0, size: _pageSize);
         emit(
           LoadedRecipesState(
-            allRecipes: recipes,
-            recipes: recipes,
+            allRecipes: page.content,
+            recipes: page.content,
+            currentPage: page.page,
+            hasReachedMax: page.last,
           ),
         );
       } on Error catch (exception) {
         emit(FailedToLoadRecipesState(error: exception));
+      }
+    });
+
+    /// ⬇️ Load More (Infinite Scroll)
+    on<LoadMoreRecipesEvent>((event, emit) async {
+      final currentState = state;
+      if (currentState is! LoadedRecipesState) return;
+      if (currentState.hasReachedMax || currentState.isLoadingMore) return;
+
+      emit(currentState.copyWith(isLoadingMore: true));
+
+      try {
+        final nextPage = currentState.currentPage + 1;
+        final page = await dataRepo.fetchRecipes(page: nextPage, size: _pageSize);
+
+        final updatedAll = List.of(currentState.allRecipes)..addAll(page.content);
+
+        final filtered = currentState.searchQuery.isEmpty
+            ? updatedAll
+            : updatedAll
+            .where((recipe) => recipe.name
+            .toLowerCase()
+            .contains(currentState.searchQuery.toLowerCase()))
+            .toList();
+
+        emit(
+          currentState.copyWith(
+            allRecipes: updatedAll,
+            recipes: filtered,
+            currentPage: page.page,
+            hasReachedMax: page.last,
+            isLoadingMore: false,
+          ),
+        );
+      } on Error catch (_) {
+        emit(currentState.copyWith(isLoadingMore: false));
       }
     });
 
@@ -37,18 +76,20 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
                 .contains(event.query.toLowerCase()))
             .toList();
 
-        emit(currentState.copyWith(recipes: filtered));
+        emit(currentState.copyWith(recipes: filtered, searchQuery: event.query));
       }
     });
 
     /// ⬇ Pull To Refresh
     on<PullToRefreshEvent>((event, emit) async {
       try {
-        final recipes = await dataRepo.fetchRecipes();
+        final page = await dataRepo.fetchRecipes(page: 0, size: _pageSize);
         emit(
           LoadedRecipesState(
-            allRecipes: recipes,
-            recipes: recipes,
+            allRecipes: page.content,
+            recipes: page.content,
+            currentPage: page.page,
+            hasReachedMax: page.last,
           ),
         );
       } on Error catch (exception) {
@@ -59,11 +100,13 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
     /// ➕ Add Recipe
     on<AddRecipeEvent>((event, emit) async {
       try {
-        final recipes = await dataRepo.fetchRecipes();
+        final page = await dataRepo.fetchRecipes(page: 0, size: _pageSize);
         emit(
           LoadedRecipesState(
-            allRecipes: recipes,
-            recipes: recipes,
+            allRecipes: page.content,
+            recipes: page.content,
+            currentPage: page.page,
+            hasReachedMax: page.last,
           ),
         );
       } on Error catch (exception) {
@@ -75,11 +118,13 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
     on<RecipeDeleted>((event, emit) async {
       try {
         await dataRepo.removeRecipe(event.recipe.id);
-        final recipes = await dataRepo.fetchRecipes();
+        final page = await dataRepo.fetchRecipes(page: 0, size: _pageSize);
         emit(
           LoadedRecipesState(
-            allRecipes: recipes,
-            recipes: recipes,
+            allRecipes: page.content,
+            recipes: page.content,
+            currentPage: page.page,
+            hasReachedMax: page.last,
           ),
         );
       } on Error catch (exception) {

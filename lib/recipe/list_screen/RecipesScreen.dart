@@ -10,26 +10,55 @@ import 'RecipesBloc.dart';
 import 'RecipesEvent.dart';
 import 'RecipesState.dart';
 
-class RecipesScreen extends StatelessWidget {
+class RecipesScreen extends StatefulWidget {
   const RecipesScreen({super.key});
+
+  @override
+  State<RecipesScreen> createState() => _RecipesScreenState();
+}
+
+class _RecipesScreenState extends State<RecipesScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  final ValueNotifier<bool> _isSearching = ValueNotifier(false);
+  final ScrollController _scrollController = ScrollController();
+
+  late final RecipesBloc _recipesBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _recipesBloc = RecipesBloc(
+      dataRepo: context.read<RecipeRepository>(),
+    )..add(LoadRecipesEvent());
+
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    const threshold = 200.0; // px vor dem Ende schon nachladen
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - threshold) {
+      _recipesBloc.add(LoadMoreRecipesEvent());
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _searchController.dispose();
+    _recipesBloc.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return _recipes(context);
   }
 
-
-
   Widget _recipes(BuildContext context) {
-
-
-    final TextEditingController _searchController = TextEditingController();
-    final ValueNotifier<bool> _isSearching = ValueNotifier(false);
-
-    return BlocProvider(
-      create: (context) => RecipesBloc(
-        dataRepo: context.read<RecipeRepository>(),
-      )..add(LoadRecipesEvent()),
+    return BlocProvider.value(
+      value: _recipesBloc,
       child: BlocListener<RecipesBloc, RecipesState>(
         listener: (context, state) {},
         child: Scaffold(
@@ -103,14 +132,20 @@ class RecipesScreen extends StatelessWidget {
             );
           }
 
-
-
           return RefreshIndicator(
             onRefresh: () async =>
                 BlocProvider.of<RecipesBloc>(context).add(PullToRefreshEvent()),
             child: ListView.builder(
-              itemCount: state.recipes.length,
+              controller: _scrollController,
+              itemCount: state.recipes.length + (state.hasReachedMax ? 0 : 1),
               itemBuilder: (context, index) {
+                if (index >= state.recipes.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
                 final recipe = state.recipes[index];
                 return Dismissible(
                   key: Key(recipe.id.toString()),

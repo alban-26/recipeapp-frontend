@@ -5,6 +5,7 @@ import 'package:recipeapp_frontend/StorageRepository.dart';
 import '../api/BaseApiClient.dart';
 import 'domain/Recipe.dart';
 import 'domain/RecipeIngredient.dart';
+import 'domain/RecipePage.dart';
 
 class RecipeApiClient extends BaseApiClient {
   final StorageRepository storageRepository;
@@ -15,17 +16,35 @@ class RecipeApiClient extends BaseApiClient {
       required super.baseUrl,
       required this.storageRepository});
 
-  Future<List<Recipe>> getRecipes() async {
-    final response = await dio.get('$baseUrl/recipes');
+  Future<RecipePage> getRecipes({int page = 0, int size = 20}) async {
+    final response = await dio.get(
+      '$baseUrl/recipes',
+      queryParameters: {'page': page, 'size': size},
+    );
+
     if (response.statusCode == 204 || response.data == null || response.data == "") {
-      return [];
+      return RecipePage.empty(page: page, size: size);
     }
-    final recipes = (response.data as List)
+
+    final data = response.data as Map<String, dynamic>;
+    final rawContent = (data['content'] as List? ?? []);
+
+    final recipes = rawContent
         .map((e) => Recipe.fromJson(e)) // Create basic recipes without images
         .toList();
 
-    return Future.wait(recipes.map((recipe) async => await recipe.withImage(
+    final recipesWithImages = await Future.wait(recipes.map((recipe) async =>
+    await recipe.withImage(
         storageRepository, '$baseUrl/recipes/${recipe.id}/image')));
+
+    return RecipePage(
+      content: recipesWithImages,
+      page: data['page'] as int,
+      size: data['size'] as int,
+      totalPages: data['totalPages'] as int,
+      totalElements: data['totalElements'] as int,
+      last: data['last'] as bool,
+    );
   }
 
   Future<Recipe> getRecipe(String id) async {
@@ -95,7 +114,8 @@ class RecipeRepository {
 
   RecipeRepository({required this.apiClient});
 
-  Future<List<Recipe>> fetchRecipes() => apiClient.getRecipes();
+  Future<RecipePage> fetchRecipes({int page = 0, int size = 20}) =>
+      apiClient.getRecipes(page: page, size: size);
 
   Future<Recipe> fetchRecipe(String recipeId) => apiClient.getRecipe(recipeId);
 
