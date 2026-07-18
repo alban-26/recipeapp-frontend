@@ -7,7 +7,6 @@ class RecipesInitialState extends RecipesState {}
 class LoadingRecipesState extends RecipesState {}
 
 class LoadedRecipesState extends RecipesState {
-  final List<Recipe> allRecipes;
   final List<Recipe> recipes;
   final int currentPage;
   final bool hasReachedMax;
@@ -15,7 +14,6 @@ class LoadedRecipesState extends RecipesState {
   final String searchQuery;
 
   LoadedRecipesState({
-    required this.allRecipes,
     required this.recipes,
     this.currentPage = 0,
     this.hasReachedMax = false,
@@ -24,7 +22,6 @@ class LoadedRecipesState extends RecipesState {
   });
 
   LoadedRecipesState copyWith({
-    List<Recipe>? allRecipes,
     List<Recipe>? recipes,
     int? currentPage,
     bool? hasReachedMax,
@@ -32,7 +29,6 @@ class LoadedRecipesState extends RecipesState {
     String? searchQuery,
   }) {
     return LoadedRecipesState(
-      allRecipes: allRecipes ?? this.allRecipes,
       recipes: recipes ?? this.recipes,
       currentPage: currentPage ?? this.currentPage,
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
@@ -42,11 +38,10 @@ class LoadedRecipesState extends RecipesState {
   }
 }
 
-
-class CreateRecipesState extends RecipesState {}
-
 class FailedToLoadRecipesState extends RecipesState {
-  Error error;
-
+  final Object error;
   FailedToLoadRecipesState({required this.error});
 }
+
+
+class CreateRecipesState extends RecipesState {}

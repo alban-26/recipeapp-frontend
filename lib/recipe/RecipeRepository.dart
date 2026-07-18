@@ -16,10 +16,14 @@ class RecipeApiClient extends BaseApiClient {
       required super.baseUrl,
       required this.storageRepository});
 
-  Future<RecipePage> getRecipes({int page = 0, int size = 20}) async {
+  Future<RecipePage> getRecipes({int page = 0, int size = 20, String? searchQuery}) async {
     final response = await dio.get(
       '$baseUrl/recipes',
-      queryParameters: {'page': page, 'size': size},
+      queryParameters: {
+        'page': page,
+        'size': size,
+        if (searchQuery != null && searchQuery.isNotEmpty) 'searchQuery': searchQuery,
+      },
     );
 
     if (response.statusCode == 204 || response.data == null || response.data == "") {
@@ -114,8 +118,8 @@ class RecipeRepository {
 
   RecipeRepository({required this.apiClient});
 
-  Future<RecipePage> fetchRecipes({int page = 0, int size = 20}) =>
-      apiClient.getRecipes(page: page, size: size);
+  Future<RecipePage> fetchRecipes({int page = 0, int size = 20, String? query}) =>
+      apiClient.getRecipes(page: page, size: size, searchQuery: query);
 
   Future<Recipe> fetchRecipe(String recipeId) => apiClient.getRecipe(recipeId);
 

@@ -3,15 +3,15 @@ import 'package:flutter/material.dart';
 class AnimatedEmptyState extends StatefulWidget {
   final IconData icon;
   final String message;
-  final String buttonText;
-  final VoidCallback onPressed;
+  final String? buttonText;
+  final VoidCallback? onPressed;
 
   const AnimatedEmptyState({
     super.key,
     required this.icon,
     required this.message,
-    required this.buttonText,
-    required this.onPressed,
+    this.buttonText,
+    this.onPressed,
   });
 
   @override
@@ -44,6 +44,8 @@ class _AnimatedEmptyStateState extends State<AnimatedEmptyState>
 
   @override
   Widget build(BuildContext context) {
+    final showButton = widget.buttonText != null && widget.onPressed != null;
+
     return Center(
       child: ScaleTransition(
         scale: _animation,
@@ -58,11 +60,13 @@ class _AnimatedEmptyStateState extends State<AnimatedEmptyState>
                 color: Colors.grey[600],
               ),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: widget.onPressed,
-              child: Text(widget.buttonText),
-            ),
+            if (showButton) ...[
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: widget.onPressed,
+                child: Text(widget.buttonText!),
+              ),
+            ],
           ],
         ),
       ),
