@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../widgets/CommonAppBar.dart';
 import '../../widgets/CommonFloatingActionButton.dart';
+import '../../widgets/WakelockToggle.dart';
 import '../ShoppingListRepository.dart';
 import '../domain/Product.dart';
 import '../domain/ProductOrderStrategy.dart';
@@ -36,6 +37,7 @@ class ShoppingListDetailScreen extends StatelessWidget {
             ),
             title: shoppingList.title,
             actions: [
+              const WakelockToggle(),
               Builder(
                 builder: (context) {
                   return PopupMenuButton<ProductOrderStrategy>(

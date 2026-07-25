@@ -6,6 +6,7 @@ import '../domain/Recipe.dart';
 import '../navigation/RecipeNavigatorCubit.dart';
 import 'RecipeBloc.dart';
 import 'RecipeEvent.dart';
+import '../../widgets/WakelockToggle.dart';
 
 class RecipeScreen extends StatelessWidget {
   final Recipe recipe;
@@ -167,7 +168,8 @@ class RecipeScreen extends StatelessWidget {
                   color: Theme.of(context)
                       .primaryColor, // Replace with your desired text color
                 ),
-              )
+              ),
+              const WakelockToggle(),
               //_buildNumberPicker(),
             ],
           ),
