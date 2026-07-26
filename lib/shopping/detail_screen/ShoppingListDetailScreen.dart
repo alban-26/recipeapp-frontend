@@ -37,7 +37,7 @@ class ShoppingListDetailScreen extends StatelessWidget {
             ),
             title: shoppingList.title,
             actions: [
-              const WakelockToggle(),
+              const WakelockToggle(onAppBar: true,),
               Builder(
                 builder: (context) {
                   return PopupMenuButton<ProductOrderStrategy>(

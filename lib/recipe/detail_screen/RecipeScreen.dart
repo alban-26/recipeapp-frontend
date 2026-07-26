@@ -152,7 +152,7 @@ class RecipeScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(
-                width: 40,
+                width: 20,
               ),
               const Icon(
                 Icons.access_time_rounded,
@@ -168,6 +168,9 @@ class RecipeScreen extends StatelessWidget {
                   color: Theme.of(context)
                       .primaryColor, // Replace with your desired text color
                 ),
+              ),
+              const SizedBox(
+                width: 10,
               ),
               const WakelockToggle(),
               //_buildNumberPicker(),
