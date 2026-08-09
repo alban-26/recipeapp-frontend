@@ -152,10 +152,62 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
 
 
   Future<void> _scanRecipe() async {
+    final ImageSource? source = await _pickScanSource();
+    if (source == null) return;
+    await _scanRecipeWithSource(source);
+  }
+
+  Future<ImageSource?> _pickScanSource() async {
+    if (Platform.isIOS) {
+      return showCupertinoModalPopup<ImageSource>(
+        context: context,
+        builder: (sheetContext) => CupertinoActionSheet(
+          title: const Text('Rezept scannen'),
+          actions: [
+            CupertinoActionSheetAction(
+              child: const Text('Kamera'),
+              onPressed: () => Navigator.pop(sheetContext, ImageSource.camera),
+            ),
+            CupertinoActionSheetAction(
+              child: const Text('Galerie'),
+              onPressed: () => Navigator.pop(sheetContext, ImageSource.gallery),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            isDefaultAction: true,
+            child: const Text('Abbrechen'),
+            onPressed: () => Navigator.pop(sheetContext, null),
+          ),
+        ),
+      );
+    } else {
+      return showModalBottomSheet<ImageSource>(
+        context: context,
+        builder: (sheetContext) => SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Kamera'),
+                onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_album),
+                title: const Text('Galerie'),
+                onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _scanRecipeWithSource(ImageSource source) async {
     final ImagePicker picker = ImagePicker();
 
     final XFile? image = await picker.pickImage(
-      source: ImageSource.camera,
+      source: source,
       imageQuality: 60,
       maxWidth: 1280,
       maxHeight: 1280,
