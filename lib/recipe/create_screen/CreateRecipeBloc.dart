@@ -177,6 +177,30 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
         recipe: updatedRecipe,
       ));
     });
+    on<InstructionIngredientToggled>((event, emit) {
+      final instructions =
+      List<CookingInstruction>.from(state.recipe.cookingInstructions);
+      final current = instructions[event.instructionIndex];
+
+      final ingredients =
+      List<RecipeIngredient>.from(current.recipeIngredients);
+      final existing = ingredients.indexWhere((i) => i.id == event.ingredient.id);
+
+      if (existing >= 0) {
+        ingredients.removeAt(existing);   // schon zugewiesen -> abwählen
+      } else {
+        ingredients.add(event.ingredient); // frei -> diesem Schritt zuweisen
+      }
+
+      instructions[event.instructionIndex] = CookingInstruction(
+        instruction: current.instruction,
+        recipeIngredients: ingredients,
+      );
+
+      emit(state.copyWith(
+        recipe: state.recipe.copyWith(cookingInstructions: instructions),
+      ));
+    });
     on<CookingInstructionDeleted>((event, emit) async {
       final updatedInstructions =
           List<CookingInstruction>.from(state.recipe.cookingInstructions)

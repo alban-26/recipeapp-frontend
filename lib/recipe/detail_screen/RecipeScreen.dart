@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../domain/CookingInstruction.dart';
 import '../domain/Recipe.dart';
 import '../navigation/RecipeNavigatorCubit.dart';
 import 'RecipeBloc.dart';
@@ -94,8 +95,7 @@ class RecipeScreen extends StatelessWidget {
                     return _buildDescriptionItem(
                         recipe
                             .cookingInstructions[
-                                index - recipe.recipeIngredients.length - 3]
-                            .instruction,
+                                index - recipe.recipeIngredients.length - 3],
                         index - recipe.recipeIngredients.length - 2,
                         context);
                   }
@@ -235,37 +235,74 @@ class RecipeScreen extends StatelessWidget {
   }
 
   Widget _buildDescriptionItem(
-      String description, int stepNumber, BuildContext context) {
+      CookingInstruction instruction, int stepNumber, BuildContext context) {
     final isEven = stepNumber % 2 == 0;
     final backgroundColor =
-        isEven ? Colors.grey.shade50 : Theme.of(context).colorScheme.surface;
+    isEven ? Colors.grey.shade50 : Theme.of(context).colorScheme.surface;
+    final ingredients = instruction.recipeIngredients;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      // Adjust the padding here
       child: Container(
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(8.0),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(12.0), // Adjust the inner padding here
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 '$stepNumber. Schritt',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 4),
-              // Add spacing between step number and description
+              if (ingredients.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    for (final ing in ingredients)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _ingredientLabel(ing.quantity, ing.unit, ing.name),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 8),
               Text(
-                description,
-                style: TextStyle(fontSize: 16),
+                instruction.instruction,
+                style: const TextStyle(fontSize: 16),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  String _ingredientLabel(double quantity, String unit, String name) {
+    final qStr = quantity <= 0
+        ? ''
+        : (quantity == quantity.roundToDouble()
+        ? quantity.toInt().toString()
+        : quantity.toString());
+    final parts =
+    [qStr, unit, name].where((s) => s.trim().isNotEmpty).toList();
+    return parts.join(' ');
   }
 }

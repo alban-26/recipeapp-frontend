@@ -56,6 +56,16 @@ class CookingInstructionChanged extends CreateRecipeEvent {
       {required this.index, required this.cookingInstruction});
 }
 
+class InstructionIngredientToggled extends CreateRecipeEvent {
+  final int instructionIndex;
+  final RecipeIngredient ingredient;
+
+  InstructionIngredientToggled({
+    required this.instructionIndex,
+    required this.ingredient,
+  });
+}
+
 class IngredientChanged extends CreateRecipeEvent {
   final int index;
   final String ingredient;

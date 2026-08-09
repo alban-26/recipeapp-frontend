@@ -14,6 +14,7 @@ import '../../widgets/CommonAppBar.dart';
 import '../RecipeRepository.dart';
 import '../domain/CookingInstruction.dart';
 import '../domain/Recipe.dart';
+import '../domain/RecipeIngredient.dart';
 import '../navigation/RecipeNavigatorCubit.dart';
 import 'CreateRecipeBloc.dart';
 import 'CreateRecipeEvent.dart';
@@ -640,29 +641,70 @@ List<Widget> _buildDescriptionFields() {
   return [
     BlocBuilder<CreateRecipeBloc, CreateRecipeState>(
       builder: (context, state) {
+        // Alle Zutaten, die schon irgendeinem Schritt zugewiesen sind (per id).
+        final assignedIds = <String>{
+          for (final step in state.recipe.cookingInstructions)
+            for (final ing in step.recipeIngredients) ing.id,
+        };
+
+        // Noch freie Zutaten -> erscheinen als antippbare Tags über JEDEM Schritt.
+        final available = state.recipe.recipeIngredients
+            .where((ing) => !assignedIds.contains(ing.id))
+            .toList();
+
         final descWidgets = <Widget>[];
+
         for (int index = 0; index < state.recipe.cookingInstructions.length; index++) {
           final step = state.recipe.cookingInstructions[index];
+
           descWidgets.add(
             Dismissible(
-              key: ValueKey(index),
-              onDismissed: (_) => context.read<CreateRecipeBloc>().add(CookingInstructionDeleted(index)),
-              background: Container(color: Colors.red, child: const Icon(Icons.delete, color: Colors.white)),
+              key: ValueKey('instruction_$index'),
+              onDismissed: (_) =>
+                  context.read<CreateRecipeBloc>().add(CookingInstructionDeleted(index)),
+              background: Container(
+                color: Colors.red,
+                child: const Icon(Icons.delete, color: Colors.white),
+              ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4),
                 child: Container(
                   decoration: BoxDecoration(
                     color: index % 2 == 0 ? Colors.grey.shade50 : Colors.white,
                     borderRadius: BorderRadius.circular(8),
-                    boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(1,1))],
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(1, 1)),
+                    ],
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: TextFormField(
-                      initialValue: step.instruction,
-                      decoration: InputDecoration(border: InputBorder.none, hintText: '${index + 1}. Schritt'),
-                      onChanged: (value) => context.read<CreateRecipeBloc>().add(
-                          CookingInstructionChanged(index: index, cookingInstruction: CookingInstruction(instruction: value, recipeIngredients: []))),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _instructionIngredientTags(
+                          context: context,
+                          index: index,
+                          assignedToThisStep: step.recipeIngredients,
+                          available: available,
+                        ),
+                        TextFormField(
+                          initialValue: step.instruction,
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            hintText: '${index + 1}. Schritt',
+                          ),
+                          onChanged: (value) => context.read<CreateRecipeBloc>().add(
+                            CookingInstructionChanged(
+                              index: index,
+                              cookingInstruction: CookingInstruction(
+                                instruction: value,
+                                // WICHTIG: bestehende Zutaten erhalten, nicht []!
+                                recipeIngredients: step.recipeIngredients,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -676,7 +718,8 @@ List<Widget> _buildDescriptionFields() {
             padding: const EdgeInsets.all(16.0),
             child: IconButton(
               icon: Icon(Icons.add_circle, size: 30, color: Colors.grey.shade600),
-              onPressed: () => context.read<CreateRecipeBloc>().add(CookingInstructionAdded()),
+              onPressed: () =>
+                  context.read<CreateRecipeBloc>().add(CookingInstructionAdded()),
             ),
           ),
         );
@@ -685,6 +728,61 @@ List<Widget> _buildDescriptionFields() {
       },
     )
   ];
+}
+
+// -------------------- Instruction-Tags --------------------
+
+Widget _instructionIngredientTags({
+  required BuildContext context,
+  required int index,
+  required List<RecipeIngredient> assignedToThisStep,
+  required List<RecipeIngredient> available,
+}) {
+  if (assignedToThisStep.isEmpty && available.isEmpty) {
+    return const SizedBox.shrink();
+  }
+
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Wrap(
+      spacing: 6,
+      runSpacing: 2,
+      children: [
+        // Diesem Schritt zugewiesen -> mit x wieder abwählbar.
+        for (final ing in assignedToThisStep)
+          InputChip(
+            label: Text(_ingredientLabel(ing)),
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            backgroundColor: Theme.of(context).primaryColor.withOpacity(0.15),
+            onDeleted: () => context.read<CreateRecipeBloc>().add(
+              InstructionIngredientToggled(instructionIndex: index, ingredient: ing),
+            ),
+          ),
+        // Noch frei -> antippen weist zu (und verschwindet dann überall).
+        for (final ing in available)
+          ActionChip(
+            label: Text(_ingredientLabel(ing)),
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            onPressed: () => context.read<CreateRecipeBloc>().add(
+              InstructionIngredientToggled(instructionIndex: index, ingredient: ing),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+String _ingredientLabel(RecipeIngredient ing) {
+  final q = ing.quantity;
+  final qStr = q <= 0
+      ? ''
+      : (q == q.roundToDouble() ? q.toInt().toString() : q.toString());
+  final parts = [qStr, ing.unit, ing.name]
+      .where((s) => s.trim().isNotEmpty)
+      .toList();
+  return parts.join(' ');
 }
 
 Widget _saveCreateRecipeChangesButton() {
