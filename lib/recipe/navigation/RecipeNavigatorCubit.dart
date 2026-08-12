@@ -48,7 +48,8 @@ class RecipeNavigatorCubit extends Cubit<RecipeNavigatorState> {
             recipeIngredients: [],
             portions: 4,
             duration: Duration.zero,
-            image: null)));
+            image: null,
+        tags: [])));
   }
 
   void updateRecipe(Recipe recipe) {

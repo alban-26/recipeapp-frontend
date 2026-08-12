@@ -16,6 +16,7 @@ class Recipe extends Equatable {
   final int portions;
   final Duration duration;
   final Uint8List? image;
+  final List<String> tags;
 
   const Recipe({
     required this.id,
@@ -25,6 +26,7 @@ class Recipe extends Equatable {
     required this.portions,
     required this.duration,
     this.image,
+    required this.tags
   });
 
   static Duration parseISODuration(String durationString) {
@@ -65,6 +67,7 @@ class Recipe extends Equatable {
         portions: json['portions'],
         duration: parseISODuration(json['duration']),
         image: null, // The image can be loaded later asynchronously
+        tags: List<String>.from(json['tags']),
       );
 
   Map<String, dynamic> toJson() {
@@ -77,6 +80,7 @@ class Recipe extends Equatable {
       'portions': portions,
       'duration':
           'PT${duration.inHours}H${duration.inMinutes.remainder(60)}M${duration.inSeconds.remainder(60)}S',
+      'tags': tags
     };
   }
 
@@ -91,6 +95,7 @@ class Recipe extends Equatable {
       portions: portions,
       duration: duration,
       image: await storageRepository.loadImage(path),
+      tags: tags
     );
   }
 
@@ -102,6 +107,7 @@ class Recipe extends Equatable {
     int? portions,
     Duration? duration,
     Uint8List? image,
+    List<String>? tags
   }) {
     return Recipe(
       id: id ?? this.id,
@@ -111,6 +117,7 @@ class Recipe extends Equatable {
       portions: portions ?? this.portions,
       duration: duration ?? this.duration,
       image: image ?? this.image,
+      tags: tags ?? this.tags
     );
   }
 
@@ -123,6 +130,7 @@ class Recipe extends Equatable {
       portions: portions,
       duration: duration,
       image: null,
+      tags: tags
     );
   }
 
@@ -156,6 +164,7 @@ class Recipe extends Equatable {
           .toList(),
 
       image: null,
+      tags: List<String>.from(json['tags']),
     );
   }
 
