@@ -57,6 +57,18 @@ class RecipeApiClient extends BaseApiClient {
     return Recipe.fromJson(response.data);
   }
 
+  Future<List<String>> getTags() async {
+    final response = await dio.get('$baseUrl/recipes/tags');
+
+    if (response.statusCode == 204 || response.data == null) {
+      return [];
+    }
+
+    return (response.data as List<dynamic>)
+        .map((e) => e.toString())
+        .toList();
+  }
+
   Future<int?> deleteRecipe(String id) async {
     final response = await dio.delete('$baseUrl/recipes/$id');
     // Ensure response data is a Map and contains 'id'
@@ -121,6 +133,8 @@ class RecipeRepository {
 
   Future<RecipePage> fetchRecipes({int page = 0, int size = 20, String? query, List<String>? tags}) =>
       apiClient.getRecipes(page: page, size: size, searchQuery: query, tags: tags);
+
+  Future<List<String>> fetchTags() => apiClient.getTags();
 
   Future<Recipe> fetchRecipe(String recipeId) => apiClient.getRecipe(recipeId);
 

@@ -29,7 +29,9 @@ class _RecipesScreenState extends State<RecipesScreen> {
     super.initState();
     _recipesBloc = RecipesBloc(
       dataRepo: context.read<RecipeRepository>(),
-    )..add(LoadRecipesEvent());
+    )..add(LoadRecipesEvent())
+      ..add(LoadTagsEvent()
+    );
 
     _scrollController.addListener(_onScroll);
   }

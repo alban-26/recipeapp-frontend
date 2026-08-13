@@ -19,5 +19,15 @@ class RecipeDeleted extends RecipesEvent {
 
 class SearchRecipesEvent extends RecipesEvent {
   final String query;
-  SearchRecipesEvent(this.query);
+  final List<String> tags;
+  SearchRecipesEvent(this.query, {this.tags = const []});
+}
+
+/// 🏷 Lädt die vom User verwendeten Tags für die Filter-Auswahl.
+class LoadTagsEvent extends RecipesEvent {}
+
+/// 🔖 Setzt den aktiven Tag-Filter und lädt die Liste neu.
+class FilterByTagsEvent extends RecipesEvent {
+  final List<String> tags;
+  FilterByTagsEvent(this.tags);
 }
