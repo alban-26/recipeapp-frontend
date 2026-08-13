@@ -34,20 +34,20 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
     on<LoadTagsEvent>(_onLoadTags);
     on<FilterByTagsEvent>(_onFilterByTags);
   }
+
+  List<String> _availableTags = const [];
   /// 🏷 Lädt die vom User verwendeten Tags für die Filter-Auswahl.
   Future<void> _onLoadTags(LoadTagsEvent event, Emitter<RecipesState> emit) async {
     try {
-      final tags = await dataRepo.fetchTags();
+      _availableTags = await dataRepo.fetchTags();   // im Feld cachen
 
-      final currentState = state;
-      if (currentState is LoadedRecipesState) {
-        emit(currentState.copyWith(availableTags: tags));
+      final s = state;
+      if (s is LoadedRecipesState) {
+        emit(s.copyWith(availableTags: _availableTags));
       }
-      // Wenn der State (noch) nicht Loaded ist, ignorieren wir es hier –
-      // die Tags werden beim nächsten LoadTagsEvent nachgezogen.
+      // Wenn noch nicht Loaded: kein Problem – _fetchFirstPage zieht es unten nach.
     } catch (_) {
-      // Tag-Liste ist "nice to have" – ein Fehler hier soll die
-      // Rezept-Anzeige nicht in einen Fehlerzustand versetzen.
+      // Tag-Liste ist "nice to have", Fehler bewusst schlucken.
     }
   }
 
@@ -105,6 +105,7 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
           hasReachedMax: page.last,
           searchQuery: query,
           tags: tags,
+          availableTags: _availableTags,
         ),
       );
     } catch (exception) {
