@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../common/CommonUtils.dart';
 import '../../widgets/CommonAppBar.dart';
 import '../MealPlanRepository.dart';
 import '../domain/DailyMealPlan.dart';
@@ -12,6 +13,7 @@ import '../navigation/MealPlanNavigatorCubit.dart';
 import 'CreateMealPlanBloc.dart';
 import 'CreateMealPlanEvent.dart';
 import 'CreateMealPlanState.dart';
+import 'package:intl/intl.dart';
 
 class CreateMealPlanScreen extends StatelessWidget {
   final MealPlan mealPlan;
@@ -131,17 +133,20 @@ class CreateMealPlanScreen extends StatelessWidget {
     );
   }
 
+
+
   Widget _dayHeader(BuildContext context, DailyMealPlan day) {
+    final weekday = DateFormat('EEEE', 'de_DE').format(day.date);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          "${day.date.day}.${day.date.month}.${day.date.year}",
+          "$weekday, ${day.date.day}.${day.date.month}.${day.date.year}",
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
-
         IconButton(
           icon: const Icon(Icons.delete, color: Colors.redAccent),
           onPressed: () {
@@ -172,7 +177,7 @@ class CreateMealPlanScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            mealtime.name,
+            mealtimeLabel(mealtime.name),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: Colors.blueGrey[700],

@@ -38,6 +38,20 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
       emit(state.copyWith(recipe: recipe));
     });
 
+    on<RecipeTagAdded>((event, emit) {
+      final normalized = event.tag.trim().toLowerCase();
+      if (normalized.isEmpty) return;
+      if (state.recipe.tags.contains(normalized)) return;      // keine Duplikate
+      final updated = [...state.recipe.tags, normalized];
+      emit(state.copyWith(recipe: state.recipe.copyWith(tags: updated)));
+    });
+
+    on<RecipeTagRemoved>((event, emit) {
+      final updated =
+      state.recipe.tags.where((t) => t != event.tag).toList();
+      emit(state.copyWith(recipe: state.recipe.copyWith(tags: updated)));
+    });
+
     on<LoadIngredientsRequested>((event, emit) async {
       final Map<String, List<String>> ingredients = await IngredientsService.loadIngredients();
       final Map<String, List<String>> customIngredients = await dataRepo.loadIngredients();

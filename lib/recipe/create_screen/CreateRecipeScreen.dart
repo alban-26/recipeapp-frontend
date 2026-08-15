@@ -21,6 +21,8 @@ import 'CreateRecipeEvent.dart';
 import 'CreateRecipeState.dart';
 import 'package:http/http.dart' as http;
 
+import 'TagsInput.dart';
+
 
 class _ModernLoadingIndicator extends StatelessWidget {
   const _ModernLoadingIndicator();
@@ -264,6 +266,16 @@ Widget _createRecipePage(BuildContext buildContext, TextEditingController nameCo
             const SizedBox(height: 20),
             _nameField(context, nameController),
             Center(child: _portionsAndDuration()),
+            const SizedBox(height: 20),
+            // --- Tags ---
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text('Tags', style: TextStyle(fontSize: 17.0)),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: TagsInput(),
+            ),
             const SizedBox(height: 20),
             const Padding(
               padding: EdgeInsets.all(16.0),

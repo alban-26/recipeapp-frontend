@@ -258,6 +258,14 @@ class ShoppingListDetailScreen extends StatelessWidget {
             return const Center(child: Text("Keine Produkte"));
           }
 
+          // ── Anzeige-Sortierung: unchecked zuerst, dann checked.
+          // Innerhalb jeder Gruppe bleibt die bestehende Reihenfolge erhalten
+          // (stabiler Sort dank indexierter Basis).
+          final displayItems = [...items]..sort((a, b) {
+            if (a.checked == b.checked) return 0; // Reihenfolge beibehalten
+            return a.checked ? 1 : -1;            // checked nach unten
+          });
+
           return RefreshIndicator(
             onRefresh: () async {
               context
@@ -265,48 +273,27 @@ class ShoppingListDetailScreen extends StatelessWidget {
                   .add(RefreshShoppingListDetailEvent());
             },
             child: ReorderableListView.builder(
-              itemCount: items.length,
+              itemCount: displayItems.length,
               onReorder: (oldIndex, newIndex) {
                 if (newIndex > oldIndex) newIndex--;
+
+                // Reordern nur innerhalb der unchecked-Gruppe zulassen.
+                final uncheckedCount =
+                    displayItems.where((i) => !i.checked).length;
+                if (oldIndex >= uncheckedCount || newIndex >= uncheckedCount) {
+                  return; // checked Items nicht verschiebbar
+                }
+
                 context.read<ShoppingListDetailBloc>().add(
-                      ReorderShoppingListItemsEvent(
-                        fromIndex: oldIndex,
-                        toIndex: newIndex,
-                      ),
-                    );
-              },
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return Dismissible(
-                  key: ValueKey(item.id),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    alignment: Alignment.centerRight,
-                    color: Colors.red,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Icon(Icons.delete, color: Colors.white),
-                    ),
-                  ),
-                  onDismissed: (_) {
-                    context.read<ShoppingListDetailBloc>().add(
-                          DeleteShoppingListItemEvent(
-                              item, state.shoppingList.id),
-                        );
-                  },
-                  child: CheckboxListTile(
-                    value: item.checked,
-                    title: Text(item.product.name),
-                    subtitle: Text('${item.quantity} ${item.unit}'),
-                    onChanged: (value) {
-                      context.read<ShoppingListDetailBloc>().add(
-                            ToggleShoppingListItemEvent(
-                              item.copyWith(checked: value ?? false),
-                            ),
-                          );
-                    },
+                  ReorderShoppingListItemsEvent(
+                    fromIndex: oldIndex,
+                    toIndex: newIndex,
                   ),
                 );
+              },
+              itemBuilder: (context, index) {
+                final item = displayItems[index];
+                return _buildItemTile(context, item, state);
               },
             ),
           );
@@ -315,4 +302,59 @@ class ShoppingListDetailScreen extends StatelessWidget {
       },
     );
   }
+
+  Widget _buildItemTile(
+      BuildContext context,
+      ShoppingItem item,
+      LoadedShoppingListDetailState state,
+      ) {
+    return Dismissible(
+      key: ValueKey(item.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        color: Colors.red,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16),
+          child: Icon(Icons.delete, color: Colors.white),
+        ),
+      ),
+      onDismissed: (_) {
+        context.read<ShoppingListDetailBloc>().add(
+          DeleteShoppingListItemEvent(item, state.shoppingList.id),
+        );
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        color: item.checked
+            ? Colors.grey.withOpacity(0.12)
+            : Colors.transparent,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 300),
+          opacity: item.checked ? 0.5 : 1.0,
+          child: CheckboxListTile(
+            value: item.checked,
+            title: Text(
+              item.product.name,
+              style: TextStyle(
+                decoration:
+                item.checked ? TextDecoration.lineThrough : null,
+                color: item.checked ? Colors.grey.shade700 : null,
+              ),
+            ),
+            subtitle: Text('${item.quantity} ${item.unit}'),
+            onChanged: (value) {
+              context.read<ShoppingListDetailBloc>().add(
+                ToggleShoppingListItemEvent(
+                  item.copyWith(checked: value ?? false),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
 }

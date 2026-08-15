@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../common/CommonUtils.dart';
 import '../../widgets/CommonAppBar.dart';
 import '../MealPlanRepository.dart';
 import '../domain/DailyMealPlan.dart';
@@ -141,7 +142,7 @@ class MealPlanDetailScreen extends StatelessWidget {
             const Divider(),
 
             ...day.meals.entries.map((entry) {
-              final mealtime = _mealtimeLabel(entry.key.name);
+              final mealtime = mealtimeLabel(entry.key.name);
               final meals = entry.value;
 
               if (meals.isEmpty) return const SizedBox.shrink();
@@ -213,22 +214,7 @@ class MealPlanDetailScreen extends StatelessWidget {
     }
   }
 
-  String _mealtimeLabel(String mealTime) {
-    switch (mealTime) {
-      case "BREAKFAST":
-        return "Frühstück";
-      case "BRUNCH":
-        return "Brunch";
-      case "LUNCH":
-        return "Mittagessen";
-      case "SNACK":
-        return "Snack";
-      case "DINNER":
-        return "Abendessen";
-      default:
-        return "Mahlzeit";
-    }
-  }
+
 
 
   // Helpers ---------------------------------------------------------------

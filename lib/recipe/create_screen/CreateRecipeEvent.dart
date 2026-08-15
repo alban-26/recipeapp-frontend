@@ -121,3 +121,13 @@ class RecipeScanned extends CreateRecipeEvent {
 
   RecipeScanned(this.recipe);
 }
+
+class RecipeTagAdded extends CreateRecipeEvent {
+  final String tag;
+  RecipeTagAdded(this.tag);
+}
+
+class RecipeTagRemoved extends CreateRecipeEvent {
+  final String tag;
+  RecipeTagRemoved(this.tag);
+}
