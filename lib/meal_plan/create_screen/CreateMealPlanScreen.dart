@@ -275,7 +275,6 @@ class _AddMealFormState extends State<AddMealForm> {
             });
           },
           fieldViewBuilder: (context, textController, focusNode, _) {
-            // NICHT mehr: controller = textController
             return TextField(
               controller: textController,
               focusNode: focusNode,
@@ -285,10 +284,17 @@ class _AddMealFormState extends State<AddMealForm> {
                   selectedRecipe = null;
                 });
               },
-              decoration: const InputDecoration(
+              onSubmitted: (_) => _addMeal(context, textController),
+              decoration: InputDecoration(
                 hintText: "Rezept suchen oder Freitext eingeben…",
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.add_circle),
+                  onPressed: currentText.trim().isEmpty
+                      ? null
+                      : () => _addMeal(context, textController),
+                ),
               ),
             );
           },
@@ -308,33 +314,32 @@ class _AddMealFormState extends State<AddMealForm> {
                 if (v != null) setState(() => servings = v);
               },
             ),
-            const Spacer(),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text("Hinzufügen"),
-              onPressed: currentText.trim().isEmpty
-                  ? null
-                  : () {
-                final recipe = selectedRecipe ??
-                    RecipeRef(id: 0, name: currentText.trim());
-                context.read<CreateMealPlanBloc>().add(
-                  AddMealToDay(
-                    dailyId: widget.day.id,
-                    mealtime: widget.mealtime,
-                    recipe: recipe,
-                    servings: servings,
-                  ),
-                );
-                setState(() {
-                  selectedRecipe = null;
-                  currentText = "";
-                  servings = 1;
-                });
-              },
-            ),
           ],
         ),
       ],
     );
+  }
+
+  void _addMeal(BuildContext context, TextEditingController textController) {
+    if (currentText.trim().isEmpty) return;
+
+    final recipe = selectedRecipe ??
+        RecipeRef(id: 0, name: currentText.trim());
+
+    context.read<CreateMealPlanBloc>().add(
+      AddMealToDay(
+        dailyId: widget.day.id,
+        mealtime: widget.mealtime,
+        recipe: recipe,
+        servings: servings,
+      ),
+    );
+
+    textController.clear();
+    setState(() {
+      selectedRecipe = null;
+      currentText = "";
+      servings = 1;
+    });
   }
 }
