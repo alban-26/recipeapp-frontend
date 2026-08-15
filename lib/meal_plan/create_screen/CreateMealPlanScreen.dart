@@ -250,71 +250,96 @@ class _AddMealFormState extends State<AddMealForm> {
   RecipeRef? selectedRecipe;
   int servings = 1;
   String currentText = "";
-
-  // controller NICHT mehr selbst erstellen — Autocomplete verwaltet ihn
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      alignment: Alignment.topCenter,
+      child: _expanded ? _buildForm(context) : _buildCollapsed(context),
+    );
+  }
+
+  Widget _buildCollapsed(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        icon: const Icon(Icons.add),
+        label: const Text("Mahlzeit hinzufügen"),
+        onPressed: () => setState(() => _expanded = true),
+      ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Autocomplete<RecipeRef>(
-          optionsBuilder: (textEditingValue) {
-            if (textEditingValue.text.isEmpty) {
-              return const Iterable<RecipeRef>.empty();
-            }
-            return widget.state.availableRecipes.where(
-                  (r) => r.name.toLowerCase().contains(textEditingValue.text.toLowerCase()),
-            );
-          },
-          displayStringForOption: (r) => r.name,
-          onSelected: (r) {
-            setState(() {
-              selectedRecipe = r;
-              currentText = r.name;
-            });
-          },
-          fieldViewBuilder: (context, textController, focusNode, _) {
-            return TextField(
-              controller: textController,
-              focusNode: focusNode,
-              onChanged: (value) {
-                setState(() {
-                  currentText = value;
-                  selectedRecipe = null;
-                });
-              },
-              onSubmitted: (_) => _addMeal(context, textController),
-              decoration: InputDecoration(
-                hintText: "Rezept suchen oder Freitext eingeben…",
-                prefixIcon: const Icon(Icons.search),
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.add_circle),
-                  onPressed: currentText.trim().isEmpty
-                      ? null
-                      : () => _addMeal(context, textController),
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 8),
         Row(
           children: [
-            DropdownButton<int>(
-              value: servings,
-              items: [1, 2, 3, 4, 5]
-                  .map((e) => DropdownMenuItem(
-                value: e,
-                child: Text("$e Portion${e > 1 ? 'en' : ''}"),
-              ))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) setState(() => servings = v);
-              },
+            Expanded(
+              child: Autocomplete<RecipeRef>(
+                optionsBuilder: (textEditingValue) {
+                  if (textEditingValue.text.isEmpty) {
+                    return const Iterable<RecipeRef>.empty();
+                  }
+                  return widget.state.availableRecipes.where(
+                        (r) => r.name.toLowerCase().contains(textEditingValue.text.toLowerCase()),
+                  );
+                },
+                displayStringForOption: (r) => r.name,
+                onSelected: (r) {
+                  setState(() {
+                    selectedRecipe = r;
+                    currentText = r.name;
+                  });
+                },
+                fieldViewBuilder: (context, textController, focusNode, _) {
+                  return TextField(
+                    controller: textController,
+                    focusNode: focusNode,
+                    onChanged: (value) {
+                      setState(() {
+                        currentText = value;
+                        selectedRecipe = null;
+                      });
+                    },
+                    onSubmitted: (_) => _addMeal(context, textController),
+                    decoration: InputDecoration(
+                      hintText: "Rezept suchen oder Freitext eingeben…",
+                      prefixIcon: const Icon(Icons.search),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.add_circle),
+                        onPressed: currentText.trim().isEmpty
+                            ? null
+                            : () => _addMeal(context, textController),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.expand_less),
+              tooltip: "Zuklappen",
+              onPressed: () => setState(() => _expanded = false),
             ),
           ],
+        ),
+        const SizedBox(height: 8),
+        DropdownButton<int>(
+          value: servings,
+          items: [1, 2, 3, 4, 5]
+              .map((e) => DropdownMenuItem(
+            value: e,
+            child: Text("$e Portion${e > 1 ? 'en' : ''}"),
+          ))
+              .toList(),
+          onChanged: (v) {
+            if (v != null) setState(() => servings = v);
+          },
         ),
       ],
     );
@@ -323,8 +348,7 @@ class _AddMealFormState extends State<AddMealForm> {
   void _addMeal(BuildContext context, TextEditingController textController) {
     if (currentText.trim().isEmpty) return;
 
-    final recipe = selectedRecipe ??
-        RecipeRef(id: 0, name: currentText.trim());
+    final recipe = selectedRecipe ?? RecipeRef(id: 0, name: currentText.trim());
 
     context.read<CreateMealPlanBloc>().add(
       AddMealToDay(
@@ -340,6 +364,7 @@ class _AddMealFormState extends State<AddMealForm> {
       selectedRecipe = null;
       currentText = "";
       servings = 1;
+      // _expanded bleibt true -> man kann direkt die nächste Mahlzeit eintragen
     });
   }
 }
