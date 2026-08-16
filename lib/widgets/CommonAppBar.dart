@@ -44,6 +44,7 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
         title: isSearching
             ? TextField(
           controller: searchController,
+          textCapitalization: TextCapitalization.sentences,
           autofocus: true,
           onChanged: onSearchChanged,
           style: TextStyle(

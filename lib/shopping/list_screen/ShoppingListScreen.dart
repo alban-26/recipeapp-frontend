@@ -65,6 +65,7 @@ class ShoppingListScreen extends StatelessWidget {
           title: const Text("Einkaufsliste erstellen"),
           content: TextField(
             controller: controller,
+            textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(
               labelText: "Name",
               hintText: "Name der Einkaufsliste eingeben",

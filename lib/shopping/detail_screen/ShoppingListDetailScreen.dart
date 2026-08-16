@@ -159,6 +159,7 @@ class ShoppingListDetailScreen extends StatelessWidget {
                     });
                     return TextField(
                       controller: controller,
+                      textCapitalization: TextCapitalization.sentences,
                       focusNode: focusNode,
                       decoration: const InputDecoration(
                         labelText: "Name",

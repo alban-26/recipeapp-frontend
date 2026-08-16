@@ -298,6 +298,7 @@ class _AddMealFormState extends State<AddMealForm> {
                 fieldViewBuilder: (context, textController, focusNode, _) {
                   return TextField(
                     controller: textController,
+                    textCapitalization: TextCapitalization.sentences,
                     focusNode: focusNode,
                     onChanged: (value) {
                       setState(() {

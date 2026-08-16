@@ -48,7 +48,7 @@ void main() async {
 
   // Set environment depending on whether it's release or debug
   //bool isProduction = bool.fromEnvironment('dart.vm.product');
-  Environment.setEnvironment(isProduction: false);
+  Environment.setEnvironment(isProduction: true);
 
   final secureStorage = FlutterSecureStorage();
   final dio = Dio();
