@@ -164,7 +164,9 @@ class Recipe extends Equatable {
           .toList(),
 
       image: null,
-      tags: List<String>.from(json['tags']),
+      tags: (json['tags'] as List<dynamic>? ?? [])
+          .map((item) => item.toString())
+          .toList(),
     );
   }
 
