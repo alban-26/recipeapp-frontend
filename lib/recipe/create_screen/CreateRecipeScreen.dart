@@ -426,20 +426,23 @@ String customTextMapper(String numberText) => '$numberText min';
 Widget _buildNumberPicker() {
   return BlocBuilder<CreateRecipeBloc, CreateRecipeState>(
     builder: (context, state) {
+      const minValue = 0;
+      const maxValue = 240;
+      const step = 5;
+
+      final raw = state.recipe.duration.inMinutes;
+      // auf den Bereich begrenzen UND auf ein Vielfaches von step runden,
+      // sonst rastet der Picker beim Scrollen auf einen anderen Wert ein
+      final value = ((raw.clamp(minValue, maxValue)) / step).round() * step;
+
       return NumberPicker(
-        selectedTextStyle: TextStyle(fontSize: 16.0, color: Theme.of(context).primaryColor),
-        itemHeight: 22,
-        itemWidth: 70,
-        step: 5,
-        minValue: 0,
-        maxValue: 240,
-        value: state.recipe.duration.inMinutes,
-        onChanged: (value) => context.read<CreateRecipeBloc>().add(DurationChanged(duration: value)),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade600, width: 1.5),
-          borderRadius: BorderRadius.circular(6.0),
-        ),
-        textMapper: customTextMapper,
+        // ...
+        minValue: minValue,
+        maxValue: maxValue,
+        step: step,
+        value: value,
+        onChanged: (v) =>
+            context.read<CreateRecipeBloc>().add(DurationChanged(duration: v)),
       );
     },
   );
@@ -810,7 +813,10 @@ Widget _saveCreateRecipeChangesButton() {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
           ),
           child: state.formStatus is FormSubmitting
-              ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
+              ? const SizedBox(
+            height: 22, width: 22,
+            child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+          )
               : const Text('Speichern', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
         ),
       );

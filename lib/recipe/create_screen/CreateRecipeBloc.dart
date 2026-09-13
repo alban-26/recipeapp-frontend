@@ -279,33 +279,42 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
     });
 
     on<SaveCreateRecipeChanges>((event, emit) async {
+      if (state.formStatus is FormSubmitting) return;   // Doppeltap abfangen
 
-      if (state.recipe.id == 0) {
-        int insertedId = await dataRepo.addRecipe(state.recipe);
+      emit(state.copyWith(formStatus: FormSubmitting()));
 
-        if (state.imagePath != null) {
-          await storageRepo.uploadImage(
-            state.imagePath!,
-            insertedId.toString(),
-            "/recipes/$insertedId/image",
-          );
+      try {
+        if (state.recipe.id == 0) {
+          final insertedId = await dataRepo.addRecipe(state.recipe);
+
+          if (state.imagePath != null) {
+            await storageRepo.uploadImage(
+              state.imagePath!,
+              insertedId.toString(),
+              "/recipes/$insertedId/image",
+            );
+          }
+
+          if (isClosed) return;
+          emit(state.copyWith(formStatus: SubmissionSuccess()));
+        } else {
+          final recipe = await dataRepo.updateRecipe(state.recipe);
+
+          if (state.isImageChanged && state.imagePath != null) {
+            await storageRepo.uploadImage(
+              state.imagePath!,
+              recipe.id.toString(),
+              "/recipes/${recipe.id}/image",
+            );
+          }
+
+          if (isClosed) return;
+          emit(state.copyWith(recipe: recipe, formStatus: SubmissionSuccess()));
         }
-
-
-        emit(state.copyWith(formStatus: SubmissionSuccess()));
-      } else {
-
-        Recipe recipe = await dataRepo.updateRecipe(state.recipe);
-
-        if (state.isImageChanged) {
-          storageRepo.uploadImage(state.imagePath!,
-              recipe.id.toString(), "/recipes/${recipe.id}/image");
-        }
-
-        emit(state.copyWith(formStatus: SubmissionSuccess()));
+      } catch (e) {
+        if (isClosed) return;
+        emit(state.copyWith(formStatus: SubmissionFailed(e as Exception)));
       }
-
-
     });
   }
 
