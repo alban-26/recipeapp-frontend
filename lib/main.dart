@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:recipeapp_frontend/StorageRepository.dart';
 import 'package:recipeapp_frontend/recipe/RecipeRepository.dart';
@@ -11,11 +12,11 @@ import 'package:recipeapp_frontend/user/UserRepository.dart';
 import 'AppNavigator.dart';
 import 'Environment.dart';
 import 'api/AuthClient.dart';
+import 'api/AuthInterceptor.dart';
+import 'api/TokenStore.dart';
 import 'auth/AuthRepository.dart';
 import 'meal_plan/MealPlanApiClient.dart';
 import 'meal_plan/MealPlanRepository.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:intl/intl.dart';
 
 final ThemeData appTheme = ThemeData(
   bottomNavigationBarTheme: BottomNavigationBarThemeData(
@@ -25,7 +26,6 @@ final ThemeData appTheme = ThemeData(
     showUnselectedLabels: true,
     type: BottomNavigationBarType.fixed,
   ),
-
   useMaterial3: true,
   colorScheme: ColorScheme(
     brightness: Brightness.light,
@@ -42,26 +42,49 @@ final ThemeData appTheme = ThemeData(
   ),
 );
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set environment depending on whether it's release or debug
-  //bool isProduction = bool.fromEnvironment('dart.vm.product');
-  Environment.setEnvironment(isProduction: true);
+  Environment.setEnvironment(isProduction: false);
 
-  final secureStorage = FlutterSecureStorage();
-  final dio = Dio();
+  const secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+  final tokenStore = TokenStore(secureStorage);
+
+  final dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 20),
+    sendTimeout: const Duration(seconds: 20),
+  ));
+
+  // Eigene Instanz OHNE Interceptor, ausschliesslich fuer den Refresh-Call.
+  final refreshDio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 15),
+  ));
+
+  // GENAU EINMAL, direkt nach dem Dio-Konstruktor und VOR dem ersten
+  // API-Client. authBaseUrl ist fest - der Refresh geht damit immer an den
+  // Auth-Service, egal welcher Request den 401 ausgeloest hat.
+  dio.interceptors.add(AuthInterceptor(
+    dio: dio,
+    refreshDio: refreshDio,
+    tokenStore: tokenStore,
+    authBaseUrl: Environment.authBaseUrl,
+  ));
 
   final fileStorage = StorageRepository(
-      dio: dio, secureStorage: secureStorage, baseUrl: Environment.recipeApiBaseUrl);
+      dio: dio,
+      secureStorage: secureStorage,
+      baseUrl: Environment.recipeApiBaseUrl);
 
   final authRepository = AuthRepository(
     authClient: AuthClient(
         dio: dio,
         secureStorage: secureStorage,
         baseUrl: Environment.authBaseUrl),
-    storage: secureStorage,
+    tokenStore: tokenStore,
   );
 
   runApp(MyApp(
@@ -69,6 +92,7 @@ void main() async {
     dio: dio,
     secureStorage: secureStorage,
     storageRepository: fileStorage,
+    tokenStore: tokenStore,
   ));
 }
 
@@ -77,13 +101,16 @@ class MyApp extends StatelessWidget {
   final Dio dio;
   final FlutterSecureStorage secureStorage;
   final StorageRepository storageRepository;
+  final TokenStore tokenStore;
 
-  const MyApp(
-      {super.key,
-      required this.authRepository,
-      required this.dio,
-      required this.secureStorage,
-      required this.storageRepository});
+  const MyApp({
+    super.key,
+    required this.authRepository,
+    required this.dio,
+    required this.secureStorage,
+    required this.storageRepository,
+    required this.tokenStore,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -134,8 +161,8 @@ class MyApp extends StatelessWidget {
       child: BlocProvider(
           create: (context) => SessionCubit(
                 authRepo: authRepository,
-                userRepository: context
-                    .read<UserRepository>(),
+                userRepository: context.read<UserRepository>(),
+                tokenStore: tokenStore,
               ),
           child: MaterialApp(
             theme: appTheme,

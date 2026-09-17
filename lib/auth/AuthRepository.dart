@@ -1,43 +1,50 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import '../api/AuthClient.dart';
+import '../api/TokenStore.dart';
 
 class AuthRepository {
   final AuthClient authClient;
-  final FlutterSecureStorage storage;
+  final TokenStore tokenStore;
 
   AuthRepository({
     required this.authClient,
-    required this.storage,
+    required this.tokenStore,
   });
 
   Future<void> login(String email, String password) async {
-    logout();
+    // WICHTIG: await.
+    // Vorher stand hier ein nacktes "logout();". Die Loeschungen konnten
+    // dadurch NACH dem Speichern der neuen Tokens landen - Login erfolgreich,
+    // Tokens trotzdem weg.
+    await tokenStore.clear();
+
     final response = await authClient.loginUser(email, password);
 
     if (response['error'] == true) {
-      throw Exception(
-          response['message']); // Throwing exception for Bloc/UI handling
+      throw Exception(response['message']);
     }
 
-    await _storeTokens(response);
+    final access = response['access_token'] as String?;
+    final refresh = response['refresh_token'] as String?;
+
+    if (access == null || refresh == null) {
+      throw Exception('Login-Antwort enthielt keine Tokens.');
+    }
+
+    await tokenStore.save(accessToken: access, refreshToken: refresh);
   }
 
   Future<void> logout() async {
-    try {
-      await storage.delete(key: 'access_token');
-      await storage.delete(key: 'refresh_token');
-    } catch (e) {
-      print('Error during sign out: $e');
-    }
+    // TODO Schritt 6: vorher /users/logout aufrufen, damit die Session auch
+    // bei Keycloak beendet wird. Aktuell bleibt der Refresh Token
+    // serverseitig gueltig.
+    await tokenStore.clear();
   }
 
-  Future<void> register(
-      String email, String password) async {
+  Future<void> register(String email, String password) async {
     try {
       final response = await authClient.registerUser(
         email: email,
-        password: password
+        password: password,
       );
       print('User registered successfully: $response');
     } catch (e) {
@@ -55,26 +62,7 @@ class AuthRepository {
     }
   }
 
-  Future<void> _storeTokens(Map<String, dynamic> tokens) async {
-    await storage.write(key: 'access_token', value: tokens['access_token']);
-    await storage.write(key: 'refresh_token', value: tokens['refresh_token']);
-  }
-
-  Future<Map<String, String>?> getStoredTokens() async {
-    try {
-      final accessToken = await storage.read(key: 'access_token');
-      final refreshToken = await storage.read(key: 'refresh_token');
-
-      if (accessToken != null && refreshToken != null) {
-        return {
-          'access_token': accessToken,
-          'refresh_token': refreshToken,
-        };
-      }
-    } catch (e) {
-      print('Error fetching stored tokens: $e');
-    }
-
-    return null;
-  }
+  /// Ersetzt das alte getStoredTokens(). Nur der SessionCubit hat es benutzt,
+  /// und der wollte nur wissen: gibt es ueberhaupt eine Session?
+  Future<bool> hasSession() => tokenStore.hasSession();
 }

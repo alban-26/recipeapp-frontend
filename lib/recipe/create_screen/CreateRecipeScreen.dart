@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:numberpicker/numberpicker.dart';
 
 import '../../StorageRepository.dart';
+import '../../common/error_messages.dart';
 import '../../common/form_submission_status.dart';
 import '../../shopping/domain/Unit.dart';
 import '../../widgets/CommonAppBar.dart';
@@ -104,8 +105,10 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
 
           if (state.formStatus is SubmissionFailed) {
             final error = (state.formStatus as SubmissionFailed).exception;
+            debugPrint('Speichern fehlgeschlagen: $error');   // Details ins Log
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(error.toString())),
+              SnackBar(content: Text(userMessage(error))),
             );
           }
         },

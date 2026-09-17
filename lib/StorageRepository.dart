@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -6,24 +5,24 @@ import 'package:http_parser/http_parser.dart';
 import 'package:recipeapp_frontend/api/BaseApiClient.dart';
 
 class StorageRepository extends BaseApiClient {
-  StorageRepository(
-      {required super.dio,
-      required super.secureStorage,
-      required super.baseUrl});
+  StorageRepository({
+    required super.dio,
+    required super.secureStorage,
+    required super.baseUrl,
+  });
 
-  Future<Map<String, String>> get _headers async {
-    final token = await secureStorage.read(key: 'auth_token');
-    return {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    };
-  }
+  // Der Authorization-Header kommt jetzt vom AuthInterceptor.
+  // Vorher wurde hier der Key 'auth_token' gelesen, den es nirgendwo gibt -
+  // es ging also woertlich "Bearer null" raus.
+  Map<String, String> get _headers => {
+        'Content-Type': 'application/json',
+      };
 
   Future<int> uploadImage(
-      Uint8List bytes,
-      String filename,
-      String url,
-      ) async {
+    Uint8List bytes,
+    String filename,
+    String url,
+  ) async {
     try {
       final formData = FormData.fromMap({
         'id': filename,
@@ -38,7 +37,7 @@ class StorageRepository extends BaseApiClient {
         super.baseUrl + url,
         data: formData,
         options: Options(
-          headers: await _headers,
+          headers: _headers,
           contentType: 'multipart/form-data',
           responseType: ResponseType.plain,
         ),
@@ -55,19 +54,24 @@ class StorageRepository extends BaseApiClient {
     }
   }
 
-
   Future<Uint8List?> loadImage(String url) async {
     try {
       final response = await dio.get(
         url,
         options: Options(
-          headers: await _headers,
+          headers: _headers,
           responseType: ResponseType.bytes,
         ),
       );
       return response.data as Uint8List;
+    } on DioException catch (e) {
+      // 404 = kein Bild hinterlegt, das ist normal und kein Fehler.
+      if (e.response?.statusCode == 404) return null;
+      print('[StorageRepository] Bild konnte nicht geladen werden '
+          '(HTTP ${e.response?.statusCode}): $url');
+      return null;
     } catch (e) {
-      print('Error: $e');
+      print('[StorageRepository] Bild konnte nicht geladen werden: $e');
       return null;
     }
   }

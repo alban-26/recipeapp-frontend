@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../common/error_messages.dart';
 import '../../widgets/AnimatedEmptyState.dart';
 import '../../widgets/CommonAppBar.dart';
 import '../../widgets/CommonFloatingActionButton.dart';
@@ -396,7 +397,19 @@ class _RecipesScreenState extends State<RecipesScreen> {
             ],
           );
         } else if (state is FailedToLoadRecipesState) {
-          return Center(child: Text('Error occurred: ${state.error}'));
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(userMessage(state.error), textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => _recipesBloc.add(LoadRecipesEvent()),
+                  child: const Text('Erneut versuchen'),
+                ),
+              ],
+            ),
+          );
         } else {
           return Container();
         }

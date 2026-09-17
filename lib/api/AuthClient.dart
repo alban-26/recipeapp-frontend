@@ -22,18 +22,11 @@ class AuthClient extends BaseApiClient {
         ),
       );
 
-      // Extract tokens and store securely
-      final data = response.data;
-      if (data != null && data['accessToken'] != null) {
-        await secureStorage.write(
-            key: 'access_token', value: data['accessToken']);
-        if (data['refreshToken'] != null) {
-          await secureStorage.write(
-              key: 'refresh_token', value: data['refreshToken']);
-        }
-      }
-
-      return data;
+      // Kein Token-Schreiben mehr hier.
+      // Vorher wurde auf data['accessToken'] geprueft - Keycloak liefert aber
+      // 'access_token'. Der Block war toter Code und hat nur die
+      // Zustaendigkeit verwischt. Das AuthRepository speichert jetzt.
+      return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       if (e.response != null) {
         final errorData = e.response?.data;
@@ -56,14 +49,14 @@ class AuthClient extends BaseApiClient {
 
   Future<Map<String, dynamic>> registerUser({
     required String email,
-    required String password
+    required String password,
   }) async {
     try {
       final response = await dio.post(
         '$baseUrl/users/register',
         data: {
           'email': email,
-          'password': password
+          'password': password,
         },
         options: Options(
           headers: {'Content-Type': 'application/json'},
@@ -99,10 +92,5 @@ class AuthClient extends BaseApiClient {
     }
   }
 
-
-
-  Future<void> logout() async {
-    await secureStorage.delete(key: 'access_token');
-    await secureStorage.delete(key: 'refresh_token');
-  }
+  // logout() entfernt - das macht jetzt AuthRepository ueber den TokenStore.
 }
