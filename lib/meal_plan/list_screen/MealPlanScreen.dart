@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 
+import '../../common/error_messages.dart';
+import '../../offline/ConnectionStatus.dart';
 import '../../widgets/AnimatedEmptyState.dart';
 import '../../widgets/CommonAppBar.dart';
 import '../../widgets/CommonFloatingActionButton.dart';
@@ -21,6 +23,7 @@ class MealPlanScreen extends StatelessWidget {
     return BlocProvider(
       create: (_) => MealPlanBloc(
         dataRepo: context.read<MealPlanRepository>(),
+        connectionStatus: context.read<ConnectionStatus>(),
       )..add(LoadMealPlanEvent()),
       child: Scaffold(
         appBar: CommonAppBar(title: 'Essensplan'),
@@ -48,7 +51,20 @@ class MealPlanScreen extends StatelessWidget {
         if (state is LoadingMealPlanState) {
           return const Center(child: CircularProgressIndicator());
         } else if (state is FailedToLoadMealPlanState) {
-          return Center(child: Text('Error occurred: ${state.error}'));
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(userMessage(state.error), textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () =>
+                      context.read<MealPlanBloc>().add(LoadMealPlanEvent()),
+                  child: const Text('Erneut versuchen'),
+                ),
+              ],
+            ),
+          );
         } else if (state is LoadedMealPlanState) {
           final mealPlans = state.mealPlans;
 
@@ -79,6 +95,17 @@ class MealPlanScreen extends StatelessWidget {
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
                 confirmDismiss: (direction) async {
+                  // Loeschen geht nur mit Verbindung.
+                  if (context.read<ConnectionStatus>().isOffline) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                            'Essenspläne können nur mit Internetverbindung gelöscht werden.'),
+                      ),
+                    );
+                    return false;
+                  }
                   return await _confirmDelete(context, plan);
                 },
                 onDismissed: (_) {

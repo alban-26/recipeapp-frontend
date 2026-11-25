@@ -1,16 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:recipeapp_frontend/shopping/ShoppingListRepository.dart';
 import '../../recipe/services/ingredients_service.dart';
 import '../ReorderShoppingItemsRequest.dart';
-import '../domain/ShoppingItem.dart';
+import '../ShoppingListMutations.dart';
 import '../domain/ShoppingList.dart';
 import 'ShoppingListDetailEvent.dart';
 import 'ShoppingListDetailState.dart';
 
+/// Alle Aenderungen werden sofort angezeigt und lokal gespeichert; das
+/// Repository liefert sie an den Server, sobald der erreichbar ist. Deshalb
+/// wartet hier nichts auf das Netz und nichts scheitert ohne Verbindung.
 class ShoppingListDetailBloc
     extends Bloc<ShoppingListDetailEvent, ShoppingListsDetailState> {
 
   final ShoppingListRepository dataRepo;
+
+  StreamSubscription<void>? _changesSub;
 
   ShoppingListDetailBloc({required this.dataRepo, required ShoppingList initialList})
       : super(LoadedShoppingListDetailState(shoppingList: initialList)) {
@@ -20,142 +27,164 @@ class ShoppingListDetailBloc
 
     on<LoadIngredientsRequested>((event, emit) async {
       final ingredients = await IngredientsService.loadShoppingItems();
-      emit((state as LoadedShoppingListDetailState)
-          .copyWith(allIngredients: ingredients ?? {}));
+      emit(_current.copyWith(allIngredients: ingredients));
 
     });
     add(LoadIngredientsRequested());
 
     on<RefreshShoppingListDetailEvent>((event, emit) async {
-      final currentState = state;
-      if (currentState is LoadedShoppingListDetailState) {
-        try {
-          final updatedList = await dataRepo.fetchShoppingList(
-            currentState.shoppingList.id.toString(),
-          );
+      try {
+        final updatedList = await dataRepo.fetchShoppingList(
+          _current.shoppingList.id.toString(),
+        );
 
-          emit(
-            LoadedShoppingListDetailState(shoppingList: updatedList),
-          );
-        } catch (e) {
-          emit(currentState);
-        }
+        emit(_current.copyWith(shoppingList: updatedList));
+      } catch (e) {
+        // Offline und nichts Neues: Anzeige bleibt, wie sie ist.
       }
     });
 
 
     on<ReorderShoppingListItemsEvent>((event, emit) async {
-      final currentState = state as LoadedShoppingListDetailState;
-      final items = currentState.shoppingList.shoppingItems;
+      final list = _current.shoppingList;
 
-      if (event.fromIndex < 0 ||
-          event.toIndex < 0 ||
-          event.fromIndex >= items.length ||
-          event.toIndex >= items.length ||
-          event.fromIndex == event.toIndex) {
-        return;
-      }
-
-      final reorderedItems = List<ShoppingItem>.from(items);
-      final movedItem = reorderedItems.removeAt(event.fromIndex);
-      reorderedItems.insert(event.toIndex, movedItem);
-
-      final rerankedItems = List.generate(
-        reorderedItems.length,
-            (index) => reorderedItems[index].copyWith(rank: index),
+      // Bildschirm-Positionen in Rang-Positionen uebersetzen: abgehakte
+      // Eintraege stehen auf dem Bildschirm unten, im Rang aber evtl. mittendrin.
+      final move = displayMoveToRankMove(
+        list.shoppingItems,
+        event.fromIndex,
+        event.toIndex,
       );
+      if (move == null) return;
 
-      emit(
-        LoadedShoppingListDetailState(
-          shoppingList: currentState.shoppingList.copyWith(
-            shoppingItems: rerankedItems,
-          ),
-        ),
-      );
+      emit(_current.copyWith(
+        shoppingList: withItemMoved(list, move[0], move[1]),
+      ));
 
       await dataRepo.reorderShoppingItem(
-        currentState.shoppingList.id,
-        ReorderShoppingItemsRequest(
-          fromIndex: event.fromIndex,
-          toIndex: event.toIndex,
-        ),
+        list.id,
+        ReorderShoppingItemsRequest(fromIndex: move[0], toIndex: move[1]),
       );
     });
 
     on<ReorderByCommonEvent>((event, emit) async {
-      final currentState = state as LoadedShoppingListDetailState;
+      final list = _current.shoppingList;
 
-      await dataRepo.reorderByCommon(currentState.shoppingList.id);
-
-      // aktualisierte Liste vom Server holen
-      final updatedList = await dataRepo.fetchShoppingList(currentState.shoppingList.id.toString());
-
-      emit(
-        LoadedShoppingListDetailState(
-          shoppingList: updatedList,
-        ),
-      );
+      await dataRepo.reorderByCommon(list.id);
+      await _emitLocal(emit, fallback: withCommonOrder);
     });
 
 
     on<AddShoppingListItemEvent>((event, emit) async {
-      final currentState = state as LoadedShoppingListDetailState;
-      int insertedId = await dataRepo.addShoppingItem(event.shoppingListId, event.item);
+      final list = _current.shoppingList;
+      int insertedId = await dataRepo.addShoppingItem(list.id, event.item);
 
-      final updatedItems = List<ShoppingItem>.from(
-          currentState.shoppingList.shoppingItems)
-        ..add(event.item.copyWith(id: insertedId));
-      emit(currentState.copyWith(
-        shoppingList: currentState.shoppingList.copyWith(
-          shoppingItems: updatedItems,
-        ),
-      ));
-
+      await _emitLocal(
+        emit,
+        fallback: (current) =>
+            withItemAdded(current, event.item.copyWith(id: insertedId)),
+      );
     });
 
-    on<ToggleShoppingListItemEvent>((event, emit) {
-      final currentState = state as LoadedShoppingListDetailState;
-      final updatedItems = currentState.shoppingList.shoppingItems
-          .map((i) => i.id == event.item.id ? event.item : i)
-          .toList();
-      dataRepo.updateShoppingItem(
-        currentState.shoppingList.id,
-        event.item.id,
-        event.item,
-      );
-      emit(LoadedShoppingListDetailState(
-        shoppingList: currentState.shoppingList.copyWith(
-          shoppingItems: updatedItems,
-        ),
+    on<ToggleShoppingListItemEvent>((event, emit) async {
+      final list = _current.shoppingList;
+
+      emit(_current.copyWith(
+        shoppingList: withItemUpdated(list, event.item),
       ));
+
+      await dataRepo.updateShoppingItem(list.id, event.item.id, event.item);
+    });
+
+    on<EditShoppingListItemEvent>((event, emit) async {
+      final list = _current.shoppingList;
+
+      emit(_current.copyWith(
+        shoppingList: withItemUpdated(list, event.item),
+      ));
+
+      await dataRepo.updateShoppingItem(list.id, event.item.id, event.item);
+      // Bei Sortierung nach Kategorie kann der Eintrag jetzt woanders stehen.
+      await _emitLocal(emit);
     });
 
     on<UpdateShoppingListEvent>((event, emit) async {
-      final currentState = state;
-      if (currentState is LoadedShoppingListDetailState) {
-        await dataRepo.updateShoppingList(event.shoppingList.id, event.shoppingList);
-        final updatedList = await dataRepo.fetchShoppingList(
-          currentState.shoppingList.id.toString(),
-        );
+      await _updateMeta(emit, event.shoppingList);
+    });
 
-        emit(
-          LoadedShoppingListDetailState(shoppingList: updatedList),
-        );
-      }
+    on<RenameShoppingListEvent>((event, emit) async {
+      final title = event.title.trim();
+      if (title.isEmpty) return;
+      await _updateMeta(emit, _current.shoppingList.copyWith(title: title));
     });
 
 
-    on<DeleteShoppingListItemEvent>((event, emit) {
-      final currentState = state as LoadedShoppingListDetailState;
-      final updatedItems = currentState.shoppingList.shoppingItems
-          .where((i) => i.id != event.item.id)
-          .toList();
-      dataRepo.removeShoppingItem(event.shoppingListId, event.item.id);
-      emit(LoadedShoppingListDetailState(
-        shoppingList: currentState.shoppingList.copyWith(
-          shoppingItems: updatedItems,
-        ),
+    on<DeleteShoppingListItemEvent>((event, emit) async {
+      final list = _current.shoppingList;
+
+      emit(_current.copyWith(
+        shoppingList: withItemRemoved(list, event.item.id),
       ));
+
+      await dataRepo.removeShoppingItem(list.id, event.item.id);
     });
+
+    on<ShoppingListSyncedEvent>((event, emit) async {
+      await _emitLocal(emit);
+    });
+
+    _changesSub = dataRepo.changes.listen((_) {
+      if (!isClosed) add(ShoppingListSyncedEvent());
+    });
+  }
+
+  /// Dieser Bloc kennt nur einen State-Typ.
+  LoadedShoppingListDetailState get _current =>
+      state as LoadedShoppingListDetailState;
+
+  /// Titel bzw. Sortierstrategie uebernehmen.
+  Future<void> _updateMeta(
+    Emitter<ShoppingListsDetailState> emit,
+    ShoppingList updated,
+  ) async {
+    await dataRepo.updateShoppingList(_current.shoppingList.id, updated);
+    await _emitLocal(
+      emit,
+      fallback: (current) => withMeta(
+        current,
+        title: updated.title,
+        orderStrategy: updated.orderStrategy,
+      ),
+    );
+  }
+
+  /// Uebernimmt den lokalen Stand des Repositories - dort liegt die Liste so,
+  /// wie sie auch der Server ausliefern wuerde (IDs, Reihenfolge).
+  ///
+  /// Kennt das Repository die Liste nicht (mehr), greift [fallback].
+  Future<void> _emitLocal(
+    Emitter<ShoppingListsDetailState> emit, {
+    ShoppingList Function(ShoppingList current)? fallback,
+  }) async {
+    ShoppingList? local;
+    try {
+      local = await dataRepo.fetchShoppingList(
+        _current.shoppingList.id.toString(),
+        cacheOnly: true,
+      );
+    } catch (_) {}
+
+    if (isClosed) return;
+    if (local != null) {
+      emit(_current.copyWith(shoppingList: local));
+    } else if (fallback != null) {
+      emit(_current.copyWith(shoppingList: fallback(_current.shoppingList)));
+    }
+  }
+
+  @override
+  Future<void> close() {
+    _changesSub?.cancel();
+    return super.close();
   }
 }

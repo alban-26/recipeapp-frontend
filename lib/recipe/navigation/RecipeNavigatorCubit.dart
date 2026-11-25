@@ -26,7 +26,15 @@ class RecipeDetailState extends RecipeNavigatorState {
 class RecipeCreateState extends RecipeNavigatorState {
   final Recipe recipe;
 
-  RecipeCreateState({required this.recipe});
+  /// Geteilter Text mit Link, der beim Oeffnen importiert wird.
+  final String? importText;
+
+  /// Jede Import-Anfrage bekommt eine eigene Seite, auch wenn schon ein
+  /// Formular offen ist.
+  final Object? importRequest;
+
+  RecipeCreateState({required this.recipe, this.importText})
+      : importRequest = importText == null ? null : Object();
 }
 
 class RecipeNavigatorCubit extends Cubit<RecipeNavigatorState> {
@@ -40,17 +48,23 @@ class RecipeNavigatorCubit extends Cubit<RecipeNavigatorState> {
   void showRecipes() => emit(RecipeListState());
 
   void showCreateRecipe() {
-    emit(RecipeCreateState(
-        recipe: Recipe(
-            id: 0,
-            name: '',
-            cookingInstructions: [],
-            recipeIngredients: [],
-            portions: 4,
-            duration: Duration.zero,
-            image: null,
-        tags: [])));
+    emit(RecipeCreateState(recipe: _emptyRecipe()));
   }
+
+  /// Neues Rezept aus einem geteilten Link.
+  void showImportRecipe(String sharedText) {
+    emit(RecipeCreateState(recipe: _emptyRecipe(), importText: sharedText));
+  }
+
+  static Recipe _emptyRecipe() => Recipe(
+      id: 0,
+      name: '',
+      cookingInstructions: [],
+      recipeIngredients: [],
+      portions: 4,
+      duration: Duration.zero,
+      image: null,
+      tags: []);
 
   void updateRecipe(Recipe recipe) {
     emit(RecipeCreateState(recipe: recipe));

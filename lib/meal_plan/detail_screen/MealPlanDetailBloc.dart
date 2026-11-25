@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../common/error_messages.dart';
 import '../MealPlanRepository.dart';
 import '../domain/MealPlan.dart';
 import 'MealPlanDetailEvent.dart';
@@ -21,8 +22,20 @@ class MealPlanDetailBloc
 
     on<GenerateShoppingListEvent>((event, emit) async {
       final currentState = state as LoadedMealPlanDetailState;
-      await dataRepo.generateShoppingList(currentState.mealPlan);
-      emit(state);
+      // Die Einkaufsliste entsteht auf dem Server - erst melden, wenn es
+      // wirklich geklappt hat (vorher kam die Erfolgsmeldung auch offline).
+      try {
+        await dataRepo.generateShoppingList(currentState.mealPlan);
+        emit(LoadedMealPlanDetailState(
+          mealPlan: currentState.mealPlan,
+          notice: 'Einkaufsliste wurde erstellt',
+        ));
+      } catch (e) {
+        emit(LoadedMealPlanDetailState(
+          mealPlan: currentState.mealPlan,
+          notice: 'Einkaufsliste konnte nicht erstellt werden. ${userMessage(e)}',
+        ));
+      }
     });
 
     on<DeleteMealPlanItemEvent>((event, emit) {

@@ -11,9 +11,13 @@ class CreateMealPlanLoaded extends CreateMealPlansState {
   final MealPlan mealPlan;
   final List<RecipeRef> availableRecipes;
 
+  /// Gesetzt, wenn das Speichern gerade fehlgeschlagen ist (einmalig).
+  final Object? saveError;
+
   CreateMealPlanLoaded({
     required this.mealPlan,
     required this.availableRecipes,
+    this.saveError,
   });
 
   CreateMealPlanLoaded copyWith({

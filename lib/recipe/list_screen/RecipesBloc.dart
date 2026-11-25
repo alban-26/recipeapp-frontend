@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:stream_transform/stream_transform.dart';
 import 'package:recipeapp_frontend/recipe/RecipeRepository.dart';
 
+import '../../offline/ConnectionStatus.dart';
+import '../domain/RecipePage.dart';
 import 'RecipesEvent.dart';
 import 'RecipesState.dart';
 
@@ -24,7 +28,20 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
   static const int _pageSize = 20;
   static const Duration _searchDebounce = Duration(milliseconds: 400);
 
-  RecipesBloc({required this.dataRepo}) : super(LoadingRecipesState()) {
+  StreamSubscription<void>? _reconnectedSub;
+
+  RecipesBloc({required this.dataRepo, ConnectionStatus? connectionStatus}) : super(LoadingRecipesState()) {
+    // Verbindung wieder da: die (evtl. nur lokal gespeicherte) Liste auffrischen.
+    _reconnectedSub = connectionStatus?.onReconnected.listen((_) {
+      if (isClosed) return;
+      if (state is LoadedRecipesState) {
+        add(PullToRefreshEvent());
+        add(LoadTagsEvent());
+      } else if (state is FailedToLoadRecipesState) {
+        add(LoadRecipesEvent());
+      }
+    });
+
     on<LoadRecipesEvent>(_onLoad);
     on<LoadMoreRecipesEvent>(_onLoadMore);
     on<SearchRecipesEvent>(_onSearch, transformer: _searchTransformer(_searchDebounce));
@@ -85,8 +102,28 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
         required bool showFullScreenLoading,
       }) async {
     final currentState = state;
+    // Beim ersten Laden zuerst zeigen, was lokal gespeichert ist: so ist die
+    // Liste sofort da, auch ohne oder mit sehr langsamer Verbindung.
+    LoadedRecipesState? shownFromCache;
     if (showFullScreenLoading || currentState is! LoadedRecipesState) {
-      emit(LoadingRecipesState());
+      RecipePage? cached;
+      if (query.isEmpty && tags.isEmpty) {
+        try {
+          cached = await dataRepo.cachedRecipes(page: 0, size: _pageSize);
+        } catch (_) {}
+      }
+      if (cached != null && cached.content.isNotEmpty) {
+        shownFromCache = LoadedRecipesState(
+          recipes: cached.content,
+          currentPage: cached.page,
+          hasReachedMax: cached.last,
+          isLoadingMore: true, // duenner Ladebalken, solange der Server gefragt wird
+          availableTags: _availableTags,
+        );
+        emit(shownFromCache);
+      } else {
+        emit(LoadingRecipesState());
+      }
     } else {
       emit(currentState.copyWith(isLoadingMore: true));
     }
@@ -109,8 +146,22 @@ class RecipesBloc extends Bloc<RecipesEvent, RecipesState> {
         ),
       );
     } catch (exception) {
-      emit(FailedToLoadRecipesState(error: exception));
+      if (shownFromCache != null) {
+        // Der Server streikt, aber es gibt gespeicherte Rezepte: die bleiben stehen.
+        emit(shownFromCache.copyWith(
+          isLoadingMore: false,
+          availableTags: _availableTags,
+        ));
+      } else {
+        emit(FailedToLoadRecipesState(error: exception));
+      }
     }
+  }
+
+  @override
+  Future<void> close() {
+    _reconnectedSub?.cancel();
+    return super.close();
   }
 
   Future<void> _onLoad(RecipesEvent event, Emitter<RecipesState> emit) async {

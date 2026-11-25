@@ -92,5 +92,18 @@ class AuthClient extends BaseApiClient {
     }
   }
 
-  // logout() entfernt - das macht jetzt AuthRepository ueber den TokenStore.
+  /// Beendet die Session auch bei Keycloak, damit der Refresh Token dort
+  /// nicht weiter gueltig bleibt. Lokal abgemeldet wird unabhaengig davon im
+  /// AuthRepository - dieser Aufruf darf scheitern.
+  Future<void> logoutUser(String refreshToken) async {
+    await dio.post(
+      '$baseUrl/users/logout',
+      data: {'refreshToken': refreshToken},
+      options: Options(
+        headers: {'Content-Type': 'application/json'},
+        sendTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 5),
+      ),
+    );
+  }
 }

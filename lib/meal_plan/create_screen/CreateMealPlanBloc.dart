@@ -4,6 +4,7 @@ import '../MealPlanRepository.dart';
 import '../domain/DailyMealPlan.dart';
 import '../domain/Meal.dart';
 import '../domain/MealPlan.dart';
+import '../domain/RecipeRef.dart';
 import 'CreateMealPlanEvent.dart';
 import 'CreateMealPlanState.dart';
 
@@ -12,6 +13,7 @@ class CreateMealPlanBloc
 
   final MealPlanRepository repo;
   MealPlan _mealPlan;
+  List<RecipeRef> _availableRecipes = const [];
 
   final bool isEditing;
 
@@ -40,7 +42,15 @@ class CreateMealPlanBloc
       ) async {
     emit(CreateMealPlanLoading());
 
-    final recipes = await repo.getAllRecipes();
+    // Ohne Verbindung (und ohne gespeicherte Rezepte) bleibt die Auswahl
+    // leer - Freitext geht trotzdem, statt dass der Ladekreis ewig dreht.
+    List<RecipeRef> recipes = const [];
+    try {
+      recipes = await repo.getAllRecipes();
+    } catch (e) {
+      print('Rezepte fuer den Essensplan nicht ladbar: $e');
+    }
+    _availableRecipes = recipes;
 
     emit(CreateMealPlanLoaded(
       mealPlan: _mealPlan,
@@ -183,11 +193,21 @@ class CreateMealPlanBloc
     if (state is! CreateMealPlanLoaded) return;
     emit(CreateMealPlanSaving());
 
-    final saved = _mealPlan.id == 0
-        ? await repo.addMealPlan(_mealPlan)
-        : await repo.updateMealPlan(_mealPlan);
+    try {
+      final saved = _mealPlan.id == 0
+          ? await repo.addMealPlan(_mealPlan)
+          : await repo.updateMealPlan(_mealPlan);
 
-    emit(CreateMealPlanSaved(saved));
+      emit(CreateMealPlanSaved(saved));
+    } catch (e) {
+      // Zurueck ins Formular - die Eingaben sind noch da und koennen spaeter
+      // erneut gespeichert werden. Vorher blieb der Bildschirm einfach leer.
+      emit(CreateMealPlanLoaded(
+        mealPlan: _mealPlan,
+        availableRecipes: _availableRecipes,
+        saveError: e,
+      ));
+    }
   }
 
 }

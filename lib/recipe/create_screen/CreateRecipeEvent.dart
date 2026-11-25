@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:recipeapp_frontend/recipe/domain/CookingInstruction.dart';
 import 'package:recipeapp_frontend/recipe/domain/RecipeIngredient.dart';
 
+import '../domain/Recipe.dart';
+
 abstract class CreateRecipeEvent {}
 
 class ChangeRecipeImageRequest extends CreateRecipeEvent {}
@@ -120,6 +122,14 @@ class RecipeScanned extends CreateRecipeEvent {
   final Map<String, dynamic> recipe;
 
   RecipeScanned(this.recipe);
+}
+
+/// Rezept von einer Webseite: ersetzt den Inhalt des Formulars.
+class RecipeImported extends CreateRecipeEvent {
+  final Recipe recipe;
+  final Uint8List? image;
+
+  RecipeImported(this.recipe, {this.image});
 }
 
 class RecipeTagAdded extends CreateRecipeEvent {

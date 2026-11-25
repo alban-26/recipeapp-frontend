@@ -17,6 +17,13 @@ import 'api/TokenStore.dart';
 import 'auth/AuthRepository.dart';
 import 'meal_plan/MealPlanApiClient.dart';
 import 'meal_plan/MealPlanRepository.dart';
+import 'offline/ConnectionStatus.dart';
+import 'offline/LocalStore.dart';
+import 'offline/OfflineData.dart';
+import 'offline/SyncQueue.dart';
+import 'offline/SyncScheduler.dart';
+import 'recipe/import/RecipeLinkImporter.dart';
+import 'recipe/import/SharedRecipeLinks.dart';
 
 final ThemeData appTheme = ThemeData(
   bottomNavigationBarTheme: BottomNavigationBarThemeData(
@@ -45,7 +52,7 @@ final ThemeData appTheme = ThemeData(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  Environment.setEnvironment(isProduction: false);
+  Environment.setEnvironment(isProduction: true);
 
   const secureStorage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -74,10 +81,23 @@ void main() async {
     authBaseUrl: Environment.authBaseUrl,
   ));
 
+  // --- Offline-Modus --------------------------------------------------------
+  // Merkt sich anhand der echten Requests, ob der Server erreichbar ist.
+  final connectionStatus = ConnectionStatus();
+  dio.interceptors.add(ConnectivityInterceptor(connectionStatus));
+
+  // Lokale Ablage (Listen, Rezepte, Bilder) und die Warteschlange fuer
+  // Aenderungen, die noch zum Server muessen.
+  final localStore = await LocalStore.open();
+  final syncQueue = SyncQueue(store: localStore);
+  await syncQueue.load();
+  final offlineData = OfflineData(store: localStore, queue: syncQueue);
+
   final fileStorage = StorageRepository(
       dio: dio,
       secureStorage: secureStorage,
-      baseUrl: Environment.recipeApiBaseUrl);
+      baseUrl: Environment.recipeApiBaseUrl,
+      imageCache: localStore);
 
   final authRepository = AuthRepository(
     authClient: AuthClient(
@@ -87,29 +107,111 @@ void main() async {
     tokenStore: tokenStore,
   );
 
-  runApp(MyApp(
-    authRepository: authRepository,
+  // Die Repositories entstehen HIER und nicht erst bei Bedarf im Widget-Baum:
+  // das ShoppingListRepository meldet seine Handler bei der Warteschlange an,
+  // und die muessen stehen, bevor zum ersten Mal synchronisiert wird.
+  final recipeRepository = RecipeRepository(
+    apiClient: RecipeApiClient(
+        dio: dio,
+        secureStorage: secureStorage,
+        baseUrl: Environment.recipeApiBaseUrl,
+        storageRepository: fileStorage),
+    store: localStore,
+  );
+  final shoppingListRepository = ShoppingListRepository(
+    apiClient: ShoppingListApiClient(
+        dio: dio,
+        secureStorage: secureStorage,
+        baseUrl: Environment.shoppingListApiBaseUrl,
+        storageRepository: fileStorage),
+    store: localStore,
+    queue: syncQueue,
+    connectionStatus: connectionStatus,
+  );
+  final mealPlanRepository = MealPlanRepository(
+    apiClient: MealPlanApiClient(
+        dio: dio,
+        secureStorage: secureStorage,
+        baseUrl: Environment.mealPlanApiBaseUrl,
+        storageRepository: fileStorage),
+    store: localStore,
+  );
+  final userRepository = UserRepository(
+      apiClient: UserApiClient(
     dio: dio,
     secureStorage: secureStorage,
+    baseUrl: Environment.authBaseUrl,
+  ));
+
+  offlineData.onReset(recipeRepository.resetCache);
+  offlineData.onReset(shoppingListRepository.resetCache);
+  offlineData.onReset(mealPlanRepository.resetCache);
+
+  // Reicht wartende Aenderungen nach, sobald der Server wieder erreichbar ist.
+  final syncScheduler = SyncScheduler(
+    queue: syncQueue,
+    status: connectionStatus,
+    // Erst wenn feststeht, dass die lokalen Daten zum angemeldeten Konto
+    // gehoeren (das prueft der SessionCubit beim Start).
+    hasSession: () async =>
+        offlineData.isReady && await tokenStore.hasSession(),
+    probe: () async {
+      await userRepository.getUser();
+    },
+  )..start();
+
+  // Rezept-Import: Links aus anderen Apps ("Teilen") und das Laden fremder Seiten.
+  final sharedRecipeLinks = SharedRecipeLinks();
+  await sharedRecipeLinks.start();
+  final recipeLinkImporter = RecipeLinkImporter();
+
+  runApp(MyApp(
+    authRepository: authRepository,
     storageRepository: fileStorage,
     tokenStore: tokenStore,
+    recipeRepository: recipeRepository,
+    shoppingListRepository: shoppingListRepository,
+    mealPlanRepository: mealPlanRepository,
+    userRepository: userRepository,
+    connectionStatus: connectionStatus,
+    syncQueue: syncQueue,
+    syncScheduler: syncScheduler,
+    offlineData: offlineData,
+    sharedRecipeLinks: sharedRecipeLinks,
+    recipeLinkImporter: recipeLinkImporter,
   ));
 }
 
 class MyApp extends StatelessWidget {
   final AuthRepository authRepository;
-  final Dio dio;
-  final FlutterSecureStorage secureStorage;
   final StorageRepository storageRepository;
   final TokenStore tokenStore;
+  final RecipeRepository recipeRepository;
+  final ShoppingListRepository shoppingListRepository;
+  final MealPlanRepository mealPlanRepository;
+  final UserRepository userRepository;
+  final ConnectionStatus connectionStatus;
+  final SyncQueue syncQueue;
+  final SyncScheduler syncScheduler;
+  final OfflineData offlineData;
+  final SharedRecipeLinks sharedRecipeLinks;
+  final RecipeLinkImporter recipeLinkImporter;
 
   const MyApp({
     super.key,
     required this.authRepository,
-    required this.dio,
-    required this.secureStorage,
     required this.storageRepository,
     required this.tokenStore,
+    required this.recipeRepository,
+    required this.shoppingListRepository,
+    required this.mealPlanRepository,
+    required this.userRepository,
+    required this.connectionStatus,
+    required this.syncQueue,
+    required this.syncScheduler,
+    required this.offlineData,
+    required this.sharedRecipeLinks,
+    required this.recipeLinkImporter,
   });
 
   @override
@@ -117,52 +219,23 @@ class MyApp extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider.value(value: authRepository),
-        RepositoryProvider(
-          create: (context) => RecipeRepository(
-            apiClient: RecipeApiClient(
-                dio: dio,
-                secureStorage: secureStorage,
-                baseUrl: Environment.recipeApiBaseUrl,
-                storageRepository: storageRepository),
-          ),
-        ),
-        RepositoryProvider(
-          create: (context) => ShoppingListRepository(
-            apiClient: ShoppingListApiClient(
-                dio: dio,
-                secureStorage: secureStorage,
-                baseUrl: Environment.shoppingListApiBaseUrl,
-                storageRepository: storageRepository),
-          ),
-        ),
-        RepositoryProvider(
-          create: (context) => MealPlanRepository(
-            apiClient: MealPlanApiClient(
-                dio: dio,
-                secureStorage: secureStorage,
-                baseUrl: Environment.mealPlanApiBaseUrl,
-                storageRepository: storageRepository),
-          ),
-        ),
-        RepositoryProvider(
-          create: (context) => UserRepository(
-              apiClient: UserApiClient(
-            dio: dio,
-            secureStorage: secureStorage,
-            baseUrl: Environment.authBaseUrl,
-          )),
-        ),
-        RepositoryProvider(
-            create: (context) => StorageRepository(
-                dio: dio,
-                secureStorage: secureStorage,
-                baseUrl: Environment.recipeApiBaseUrl))
+        RepositoryProvider.value(value: recipeRepository),
+        RepositoryProvider.value(value: shoppingListRepository),
+        RepositoryProvider.value(value: mealPlanRepository),
+        RepositoryProvider.value(value: userRepository),
+        RepositoryProvider.value(value: storageRepository),
+        RepositoryProvider.value(value: connectionStatus),
+        RepositoryProvider.value(value: syncQueue),
+        RepositoryProvider.value(value: syncScheduler),
+        RepositoryProvider.value(value: sharedRecipeLinks),
+        RepositoryProvider.value(value: recipeLinkImporter),
       ],
       child: BlocProvider(
           create: (context) => SessionCubit(
                 authRepo: authRepository,
                 userRepository: context.read<UserRepository>(),
                 tokenStore: tokenStore,
+                offlineData: offlineData,
               ),
           child: MaterialApp(
             theme: appTheme,

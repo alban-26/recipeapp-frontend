@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../common/CommonUtils.dart';
+import '../../common/error_messages.dart';
 import '../../widgets/CommonAppBar.dart';
 import '../MealPlanRepository.dart';
 import '../domain/DailyMealPlan.dart';
@@ -46,9 +47,17 @@ class CreateMealPlanScreen extends StatelessWidget {
           if (state is CreateMealPlanSaved) {
             context.read<MealPlanNavigatorCubit>().showMealPlans();
           }
+          if (state is CreateMealPlanLoaded && state.saveError != null) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(userMessage(state.saveError))),
+            );
+          }
         },
         builder: (context, state) {
-          if (state is CreateMealPlanInitial || state is CreateMealPlanLoading) {
+          if (state is CreateMealPlanInitial ||
+              state is CreateMealPlanLoading ||
+              state is CreateMealPlanSaving) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );

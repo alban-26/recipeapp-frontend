@@ -20,12 +20,13 @@ class ShoppingItem extends Equatable {
 
   factory ShoppingItem.fromJson(Map<String, dynamic> json) {
     return ShoppingItem(
-      id: json['id'],
-      product: Product.fromJson(json['product']),
-      quantity: json['quantity'],
-      unit: json['unit'],
+      id: (json['id'] as num).toInt(),
+      product: Product.fromJson(Map<String, dynamic>.from(json['product'] as Map)),
+      // Der Server schickt 3.0, aber ein ganzzahliges 3 soll nicht crashen.
+      quantity: (json['quantity'] as num?)?.toDouble() ?? 0,
+      unit: json['unit'] ?? '',
       checked: json['checked'] ?? false,
-      rank: json['rank']
+      rank: (json['rank'] as num?)?.toInt() ?? 0
     );
   }
 

@@ -5,7 +5,11 @@ abstract class MealPlansDetailState {}
 class LoadedMealPlanDetailState extends MealPlansDetailState {
   final MealPlan mealPlan;
 
-  LoadedMealPlanDetailState({required this.mealPlan});
+  /// Einmalige Rueckmeldung fuer den Nutzer (z.B. "Einkaufsliste wurde
+  /// erstellt"), null wenn es nichts zu melden gibt.
+  final String? notice;
+
+  LoadedMealPlanDetailState({required this.mealPlan, this.notice});
 }
 
 

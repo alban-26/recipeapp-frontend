@@ -14,6 +14,7 @@ import '../../StorageRepository.dart';
 import '../../common/form_submission_status.dart';
 import '../../shopping/domain/Unit.dart';
 import '../domain/Recipe.dart';
+import '../import/RecipeWebParser.dart';
 import '../navigation/RecipeNavigatorCubit.dart';
 import '../services/ingredients_service.dart';
 import 'CreateRecipeEvent.dart';
@@ -35,7 +36,46 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
 
       final recipe = Recipe.fromLLMJson(event.recipe);
 
-      emit(state.copyWith(recipe: recipe));
+      emit(state.copyWith(recipe: recipe, contentVersion: state.contentVersion + 1));
+    });
+
+    on<RecipeImported>((event, emit) async {
+      // Kategorien wie beim Eintippen aus den bekannten Zutatenlisten.
+      var known = state.allIngredients;
+      if (known.isEmpty) {
+        try {
+          known = await IngredientsService.loadIngredients();
+        } catch (_) {
+          known = const {};
+        }
+      }
+      var recipe = RecipeWebParser.categorize(event.recipe, known);
+
+      Uint8List? imageData;
+      final imageBytes = event.image;
+      if (imageBytes != null) {
+        try {
+          final decoded = img.decodeImage(imageBytes);
+          if (decoded != null) imageData = await compressImage(decoded);
+        } catch (_) {
+          imageData = null; // Ohne Bild weiter.
+        }
+      }
+
+      if (imageData != null) {
+        recipe = recipe.copyWith(image: imageData);
+        emit(state.copyWith(
+          recipe: recipe,
+          imagePath: imageData,
+          imageChanged: true,
+          imageError: null,
+          contentVersion: state.contentVersion + 1,
+        ));
+      } else {
+        // Ein schon gewaehltes Bild bleibt, wenn die Seite keins liefert.
+        recipe = state.recipe.image == null ? recipe : recipe.copyWith(image: state.recipe.image);
+        emit(state.copyWith(recipe: recipe, contentVersion: state.contentVersion + 1));
+      }
     });
 
     on<RecipeTagAdded>((event, emit) {
@@ -54,7 +94,14 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
 
     on<LoadIngredientsRequested>((event, emit) async {
       final Map<String, List<String>> ingredients = await IngredientsService.loadIngredients();
-      final Map<String, List<String>> customIngredients = await dataRepo.loadIngredients();
+      // Die eigenen Zutaten kommen vom Server. Klappt das nicht, sollen
+      // wenigstens die mitgelieferten Vorschlaege da sein.
+      Map<String, List<String>> customIngredients = const {};
+      try {
+        customIngredients = await dataRepo.loadIngredients();
+      } catch (e) {
+        print('Eigene Zutaten konnten nicht geladen werden: $e');
+      }
 
       final merged = <String, List<String>>{...ingredients};
       for (final entry in customIngredients.entries) {
@@ -145,17 +192,21 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
           List<RecipeIngredient>.from(state.recipe.recipeIngredients);
       updatedIngredients[event.index] =
           updatedIngredients[event.index].copyWith(name: event.ingredient, productCategory: event.productCategory);
-      final Recipe updatedRecipe =
-          state.recipe.copyWith(recipeIngredients: updatedIngredients);
+      final Recipe updatedRecipe = state.recipe.copyWith(
+        recipeIngredients: updatedIngredients,
+        cookingInstructions: _stepsWithUpdated(updatedIngredients[event.index]),
+      );
       emit(state.copyWith(recipe: updatedRecipe));
     });
     on<DeleteIngredient>((event, emit) async {
+      final removed = state.recipe.recipeIngredients[event.index];
       final updatedIngredients =
           List<RecipeIngredient>.from(state.recipe.recipeIngredients)
             ..removeAt(event.index);
 
       final updatedRecipe = state.recipe.copyWith(
         recipeIngredients: updatedIngredients,
+        cookingInstructions: _stepsWithout(removed.id),
       );
 
       emit(state.copyWith(
@@ -234,8 +285,10 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
           List<RecipeIngredient>.from(state.recipe.recipeIngredients);
       updatedIngredients[event.index] =
           updatedIngredients[event.index].copyWith(quantity: event.quantity);
-      final Recipe updatedRecipe =
-          state.recipe.copyWith(recipeIngredients: updatedIngredients);
+      final Recipe updatedRecipe = state.recipe.copyWith(
+        recipeIngredients: updatedIngredients,
+        cookingInstructions: _stepsWithUpdated(updatedIngredients[event.index]),
+      );
       emit(state.copyWith(recipe: updatedRecipe));
     });
 
@@ -244,8 +297,10 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
           List<RecipeIngredient>.from(state.recipe.recipeIngredients);
       updatedIngredients[event.index] =
           updatedIngredients[event.index].copyWith(unit: event.unit);
-      final Recipe updatedRecipe =
-          state.recipe.copyWith(recipeIngredients: updatedIngredients);
+      final Recipe updatedRecipe = state.recipe.copyWith(
+        recipeIngredients: updatedIngredients,
+        cookingInstructions: _stepsWithUpdated(updatedIngredients[event.index]),
+      );
       emit(state.copyWith(recipe: updatedRecipe));
     });
 
@@ -316,6 +371,30 @@ class CreateRecipeBloc extends Bloc<CreateRecipeEvent, CreateRecipeState> {
         emit(state.copyWith(formStatus: SubmissionFailed(e as Exception)));
       }
     });
+  }
+
+  // Die Schritte halten Kopien ihrer Zutaten. Ohne Abgleich zeigten (und
+  // speicherten) sie nach einer Aenderung der Zutat noch den alten Stand.
+
+  List<CookingInstruction> _stepsWithUpdated(RecipeIngredient changed) {
+    return state.recipe.cookingInstructions.map((step) {
+      if (!step.recipeIngredients.any((i) => i.id == changed.id)) return step;
+      return CookingInstruction(
+        instruction: step.instruction,
+        recipeIngredients:
+            step.recipeIngredients.map((i) => i.id == changed.id ? changed : i).toList(),
+      );
+    }).toList();
+  }
+
+  List<CookingInstruction> _stepsWithout(String ingredientId) {
+    return state.recipe.cookingInstructions.map((step) {
+      if (!step.recipeIngredients.any((i) => i.id == ingredientId)) return step;
+      return CookingInstruction(
+        instruction: step.instruction,
+        recipeIngredients: step.recipeIngredients.where((i) => i.id != ingredientId).toList(),
+      );
+    }).toList();
   }
 
   Future<Uint8List?> compressImage(

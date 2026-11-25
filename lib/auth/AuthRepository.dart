@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../api/AuthClient.dart';
 import '../api/TokenStore.dart';
 
@@ -34,10 +36,26 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
-    // TODO Schritt 6: vorher /users/logout aufrufen, damit die Session auch
-    // bei Keycloak beendet wird. Aktuell bleibt der Refresh Token
-    // serverseitig gueltig.
+    String? refreshToken;
+    try {
+      refreshToken = await tokenStore.readRefreshToken();
+    } catch (_) {
+      // Speicher nicht lesbar: dann eben nur lokal abmelden.
+    }
+
+    // Zuerst lokal - das darf nie am Netz haengen.
     await tokenStore.clear();
+
+    // Danach die Session auch bei Keycloak beenden, ohne darauf zu warten.
+    // Wichtig vor allem mit Offline Tokens, die sonst wochenlang gueltig
+    // blieben. Ohne Verbindung laeuft die Session dort von selbst aus.
+    if (refreshToken != null) {
+      unawaited(
+        authClient.logoutUser(refreshToken).catchError((Object e) {
+          print('Abmelden am Server nicht moeglich: $e');
+        }),
+      );
+    }
   }
 
   Future<void> register(String email, String password) async {

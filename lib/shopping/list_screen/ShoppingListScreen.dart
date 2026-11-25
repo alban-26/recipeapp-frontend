@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+import '../../common/error_messages.dart';
 import '../../widgets/AnimatedEmptyState.dart';
 import '../../widgets/CommonAppBar.dart';
 import '../../widgets/CommonFloatingActionButton.dart';
 import '../ShoppingListRepository.dart';
 import '../domain/ShoppingList.dart';
 import '../navigation/ShoppingListNavigatorCubit.dart';
+import '../widgets/RenameShoppingListDialog.dart';
 
 import 'ShoppingListBloc.dart';
 import 'ShoppingListEvent.dart';
 import 'ShoppingListState.dart';
+
+enum _ListCardAction { rename, delete }
 
 class ShoppingListScreen extends StatelessWidget {
   const ShoppingListScreen({super.key});
@@ -132,7 +136,21 @@ class ShoppingListScreen extends StatelessWidget {
             ),
           );
         } else if (state is FailedToLoadShoppingListState) {
-          return Center(child: Text('Error: ${state.error}'));
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(userMessage(state.error), textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => context
+                      .read<ShoppingListBloc>()
+                      .add(LoadShoppingListEvent()),
+                  child: const Text('Erneut versuchen'),
+                ),
+              ],
+            ),
+          );
         } else {
           return const Center(child: Text('Keine Einkaufslisten gefunden'));
         }
@@ -140,6 +158,50 @@ class ShoppingListScreen extends StatelessWidget {
     );
   }
 
+
+  Future<bool?> _confirmDelete(BuildContext context, ShoppingList list) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Liste Löschen'),
+        content: Text('"${list.title}" löschen?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child:
+            const Text('Löschen', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _onCardAction(
+    BuildContext context,
+    ShoppingList list,
+    _ListCardAction action,
+  ) async {
+    // Vor dem Dialog greifen: danach ist der context evtl. nicht mehr gueltig.
+    final bloc = context.read<ShoppingListBloc>();
+
+    switch (action) {
+      case _ListCardAction.rename:
+        final title = await showRenameShoppingListDialog(
+          context,
+          currentTitle: list.title,
+        );
+        if (title != null) bloc.add(ShoppingListRenamed(list, title));
+        break;
+      case _ListCardAction.delete:
+        final confirmed = await _confirmDelete(context, list);
+        if (confirmed == true) bloc.add(ShoppingListDeleted(list));
+        break;
+    }
+  }
 
   Widget _shoppingListTile(BuildContext context, ShoppingList list) {
     final itemCount = list.shoppingItems.length;
@@ -161,26 +223,7 @@ class ShoppingListScreen extends StatelessWidget {
       ),
       onDismissed: (_) =>
           context.read<ShoppingListBloc>().add(ShoppingListDeleted(list)),
-      confirmDismiss: (_) async {
-        return await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Liste Löschen'),
-            content: Text('"${list.title}" löschen?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Abbrechen'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child:
-                const Text('Löschen', style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-        );
-      },
+      confirmDismiss: (_) => _confirmDelete(context, list),
       child: Card(
         elevation: 2,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -222,6 +265,22 @@ class ShoppingListScreen extends StatelessWidget {
                     Text(
                       dateFormat.format(list.createdAt),
                       style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    PopupMenuButton<_ListCardAction>(
+                      tooltip: 'Mehr',
+                      padding: EdgeInsets.zero,
+                      onSelected: (action) =>
+                          _onCardAction(context, list, action),
+                      itemBuilder: (context) => const [
+                        PopupMenuItem<_ListCardAction>(
+                          value: _ListCardAction.rename,
+                          child: Text('Umbenennen'),
+                        ),
+                        PopupMenuItem<_ListCardAction>(
+                          value: _ListCardAction.delete,
+                          child: Text('Löschen'),
+                        ),
+                      ],
                     ),
                   ],
                 ),

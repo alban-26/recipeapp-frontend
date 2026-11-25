@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../StorageRepository.dart';
 import '../auth/AuthRepository.dart';
+import '../offline/SyncQueue.dart';
 import '../session/SessionCubit.dart';
 import '../widgets/CommonAppBar.dart';
 
@@ -48,7 +49,7 @@ class _ProfileContent extends StatelessWidget {
             _ActionTile(
               icon: Icons.logout,
               title: 'Logout',
-              onTap: () => context.read<SessionCubit>().logout(),
+              onTap: () => _logout(context),
             ),
             const SizedBox(height: 24),
             const _DangerZone(),
@@ -57,6 +58,44 @@ class _ProfileContent extends StatelessWidget {
       },
     );
   }
+}
+
+/// Beim Abmelden werden die lokal gespeicherten Daten geloescht. Warten noch
+/// Aenderungen auf die Uebertragung, waeren sie damit weg - also vorher fragen.
+Future<void> _logout(BuildContext context) async {
+  final sessionCubit = context.read<SessionCubit>();
+  final pending = context.read<SyncQueue>().pendingCount;
+
+  if (pending > 0) {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      useRootNavigator: true,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Trotzdem abmelden?'),
+        content: Text(
+          pending == 1
+              ? '1 Änderung wurde noch nicht zum Server übertragen und '
+                  'geht beim Abmelden verloren.'
+              : '$pending Änderungen wurden noch nicht zum Server übertragen '
+                  'und gehen beim Abmelden verloren.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Abmelden'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+  }
+
+  sessionCubit.logout();
 }
 
 /* ───────────────────────── PROFILE HEADER ───────────────────────── */

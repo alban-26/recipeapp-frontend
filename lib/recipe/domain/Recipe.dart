@@ -67,7 +67,7 @@ class Recipe extends Equatable {
         portions: json['portions'],
         duration: parseISODuration(json['duration']),
         image: null, // The image can be loaded later asynchronously
-        tags: List<String>.from(json['tags']),
+        tags: List<String>.from(json['tags'] ?? const []),
       );
 
   Map<String, dynamic> toJson() {
@@ -86,7 +86,8 @@ class Recipe extends Equatable {
 
   // Load the image asynchronously from the storage repository
   Future<Recipe> withImage(
-      StorageRepository storageRepository, String path) async {
+      StorageRepository storageRepository, String path,
+      {bool cacheOnly = false}) async {
     return Recipe(
       id: id,
       name: name,
@@ -94,7 +95,7 @@ class Recipe extends Equatable {
       recipeIngredients: recipeIngredients,
       portions: portions,
       duration: duration,
-      image: await storageRepository.loadImage(path),
+      image: await storageRepository.loadImage(path, cacheOnly: cacheOnly),
       tags: tags
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../../common/quantity_format.dart';
 import '../domain/CookingInstruction.dart';
 import '../domain/Recipe.dart';
 import '../navigation/RecipeNavigatorCubit.dart';
@@ -170,7 +171,9 @@ class RecipeScreen extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              // FaIcon statt Icon: seit font_awesome_flutter 11 sind die
+              // Font-Awesome-Symbole keine IconData mehr.
+              const FaIcon(
                 FontAwesomeIcons.bowlRice,
                 size: 35,
               ),
@@ -257,26 +260,18 @@ class RecipeScreen extends StatelessWidget {
             ),
             child: Padding(
               padding: const EdgeInsets.all(12.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        '${state.recipe.recipeIngredients[index].quantity} ${state.recipe.recipeIngredients[index].unit}',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                // "3 Stück Äpfel", "50g Mehl" - Menge aus dem State, damit
+                // sie der gewaehlten Portionenzahl folgt.
+                child: Text(
+                  formatIngredient(
+                    state.recipe.recipeIngredients[index].quantity,
+                    state.recipe.recipeIngredients[index].unit,
+                    recipe.recipeIngredients[index].name,
                   ),
-                  const SizedBox(width: 26),
-                  Expanded(
-                    flex: 3,
-                    child: Text(
-                      recipe.recipeIngredients[index].name,
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  ),
-                ],
+                  style: TextStyle(fontSize: 16),
+                ),
               ),
             ),
           ),
@@ -346,14 +341,6 @@ class RecipeScreen extends StatelessWidget {
     );
   }
 
-  String _ingredientLabel(double quantity, String unit, String name) {
-    final qStr = quantity <= 0
-        ? ''
-        : (quantity == quantity.roundToDouble()
-        ? quantity.toInt().toString()
-        : quantity.toString());
-    final parts =
-    [qStr, unit, name].where((s) => s.trim().isNotEmpty).toList();
-    return parts.join(' ');
-  }
+  String _ingredientLabel(double quantity, String unit, String name) =>
+      formatIngredient(quantity, unit, name);
 }

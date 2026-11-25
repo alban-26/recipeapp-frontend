@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,12 +11,15 @@ import 'package:numberpicker/numberpicker.dart';
 import '../../StorageRepository.dart';
 import '../../common/error_messages.dart';
 import '../../common/form_submission_status.dart';
+import '../../common/quantity_format.dart';
 import '../../shopping/domain/Unit.dart';
 import '../../widgets/CommonAppBar.dart';
 import '../RecipeRepository.dart';
 import '../domain/CookingInstruction.dart';
 import '../domain/Recipe.dart';
 import '../domain/RecipeIngredient.dart';
+import '../import/RecipeLinkImporter.dart';
+import '../import/RecipeWebParser.dart';
 import '../navigation/RecipeNavigatorCubit.dart';
 import 'CreateRecipeBloc.dart';
 import 'CreateRecipeEvent.dart';
@@ -52,7 +56,10 @@ class _ModernLoadingIndicator extends StatelessWidget {
 class CreateRecipeScreen extends StatefulWidget {
   final Recipe recipe;
 
-  const CreateRecipeScreen({super.key, required this.recipe});
+  /// Geteilter Link (oder Text mit Link): wird beim Oeffnen sofort importiert.
+  final String? importText;
+
+  const CreateRecipeScreen({super.key, required this.recipe, this.importText});
 
   @override
   _CreateRecipeScreenState createState() => _CreateRecipeScreenState();
@@ -72,6 +79,13 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       recipeNavigatorCubit: context.read<RecipeNavigatorCubit>(),
       initialRecipe: widget.recipe,
     );
+
+    final importText = widget.importText;
+    if (importText != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _importFromLink(importText);
+      });
+    }
   }
 
   @override
@@ -122,6 +136,11 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
             ),
             actions: [
               IconButton(
+                icon: const Icon(Icons.link),
+                tooltip: 'Aus Link importieren',
+                onPressed: _askForLink,
+              ),
+              IconButton(
                 icon: const Icon(Icons.document_scanner_outlined),
                 tooltip: 'Rezept scannen',
                 onPressed: _scanRecipe,
@@ -156,6 +175,44 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
 
 
 
+
+  // -------------------- Import aus Link --------------------
+
+  Future<void> _askForLink() async {
+    final link = await showDialog<String>(
+      context: context,
+      builder: (_) => const _ImportLinkDialog(),
+    );
+    if (link == null || link.trim().isEmpty || !mounted) return;
+    await _importFromLink(link);
+  }
+
+  Future<void> _importFromLink(String text) async {
+    final importer = context.read<RecipeLinkImporter>();
+    _bloc.add(ScanRecipeStarted());
+    try {
+      final result = await importer.import(text);
+      _bloc.add(RecipeImported(result.recipe, image: result.image));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Rezept von ${result.source.host} übernommen – bitte prüfen und speichern.'),
+      ));
+    } catch (e) {
+      debugPrint('Import fehlgeschlagen: $e');
+      if (!mounted) return;
+      final message = e is RecipeImportException
+          ? e.message
+          : 'Das Rezept konnte nicht übernommen werden.';
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 6),
+      ));
+    } finally {
+      _bloc.add(ScanRecipeFinished());
+    }
+  }
 
   Future<void> _scanRecipe() async {
     final ImageSource? source = await _pickScanSource();
@@ -395,7 +452,9 @@ Widget _portionsAndDuration() {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(FontAwesomeIcons.bowlRice, size: 30),
+                // FaIcon statt Icon: seit font_awesome_flutter 11 sind die
+                // Font-Awesome-Symbole keine IconData mehr.
+                const FaIcon(FontAwesomeIcons.bowlRice, size: 30),
                 IconButton(
                   icon: Icon(Icons.remove_circle_outline, color: Colors.grey.shade600, size: 30),
                   onPressed: () {
@@ -471,7 +530,8 @@ List<Widget> _buildIngredientFields() {
         for (int index = 0; index < state.recipe.recipeIngredients.length; index++) {
           final ingredient = state.recipe.recipeIngredients[index];
           final initialIngredient = ingredient.name;
-          final initialQuantity = ingredient.quantity.toInt().toString();
+          // "1,5" statt "1" - importierte Rezepte haben oft halbe Mengen.
+          final initialQuantity = ingredient.quantity > 0 ? formatQuantity(ingredient.quantity) : '';
           final Unit initialUnit = Unit.fromString(ingredient.unit);
 
           ingredientWidgets.add(
@@ -572,12 +632,8 @@ List<Widget> _buildIngredientFields() {
                       Expanded(
                         flex: 2,
                         child: TextFormField(
-                          initialValue: (initialQuantity == null ||
-                              initialQuantity == 0 ||
-                              initialQuantity == '0')
-                              ? ''
-                              : initialQuantity.toString(),
-                          keyboardType: TextInputType.number,
+                          initialValue: initialQuantity,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: InputDecoration(
                             hintText: '0',
                             border: InputBorder.none,
@@ -585,7 +641,7 @@ List<Widget> _buildIngredientFields() {
                             fillColor: index % 2 == 0 ? Colors.grey.shade50 : Colors.white,
                           ),
                           onChanged: (value) {
-                            final amount = double.tryParse(value) ?? 0;
+                            final amount = double.tryParse(value.trim().replaceAll(',', '.')) ?? 0;
                             context.read<CreateRecipeBloc>().add(QuantityChanged(index: index, quantity: amount));
                           },
                         ),
@@ -677,7 +733,7 @@ List<Widget> _buildDescriptionFields() {
 
           descWidgets.add(
             Dismissible(
-              key: ValueKey('instruction_$index'),
+              key: ValueKey('instruction_${state.contentVersion}_$index'),
               onDismissed: (_) =>
                   context.read<CreateRecipeBloc>().add(CookingInstructionDeleted(index)),
               background: Container(
@@ -792,16 +848,8 @@ Widget _instructionIngredientTags({
   );
 }
 
-String _ingredientLabel(RecipeIngredient ing) {
-  final q = ing.quantity;
-  final qStr = q <= 0
-      ? ''
-      : (q == q.roundToDouble() ? q.toInt().toString() : q.toString());
-  final parts = [qStr, ing.unit, ing.name]
-      .where((s) => s.trim().isNotEmpty)
-      .toList();
-  return parts.join(' ');
-}
+String _ingredientLabel(RecipeIngredient ing) =>
+    formatIngredient(ing.quantity, ing.unit, ing.name);
 
 Widget _saveCreateRecipeChangesButton() {
   return BlocBuilder<CreateRecipeBloc, CreateRecipeState>(
@@ -866,5 +914,80 @@ void _showImageSourceActionSheet(BuildContext context) {
     ).whenComplete(() {
       if (Navigator.of(context).canPop() && !isImageSourceSelected) selectImageSource(null);
     });
+  }
+}
+
+
+/// Abfrage des Links. Steht ein Link in der Zwischenablage, ist er schon eingetragen.
+class _ImportLinkDialog extends StatefulWidget {
+  const _ImportLinkDialog();
+
+  @override
+  State<_ImportLinkDialog> createState() => _ImportLinkDialogState();
+}
+
+class _ImportLinkDialogState extends State<_ImportLinkDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _prefillFromClipboard();
+  }
+
+  Future<void> _prefillFromClipboard() async {
+    try {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      final url = RecipeWebParser.extractFirstUrl(data?.text ?? '');
+      if (url != null && mounted && _controller.text.isEmpty) {
+        _controller.text = url.toString();
+      }
+    } catch (_) {
+      // Ohne Zwischenablage einfach leer lassen.
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.of(context).pop(_controller.text.trim());
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Rezept aus Link'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Link zu einer Rezeptseite einfügen. Name, Zutaten, Schritte und Bild werden übernommen.'),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            keyboardType: TextInputType.url,
+            textInputAction: TextInputAction.go,
+            decoration: const InputDecoration(
+              hintText: 'https://…',
+              prefixIcon: Icon(Icons.link),
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('Importieren'),
+        ),
+      ],
+    );
   }
 }

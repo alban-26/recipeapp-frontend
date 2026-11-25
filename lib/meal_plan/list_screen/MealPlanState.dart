@@ -15,7 +15,9 @@ class LoadedMealPlanState extends MealPlanState {
 class CreateMealPlanState extends MealPlanState {}
 
 class FailedToLoadMealPlanState extends MealPlanState {
-  Error error;
+  // Object statt Error: Netzwerkfehler (DioException) sind Exceptions und
+  // wurden vorher gar nicht abgefangen - die Seite blieb beim Ladekreis haengen.
+  Object error;
 
   FailedToLoadMealPlanState({required this.error});
 }

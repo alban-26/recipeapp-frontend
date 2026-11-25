@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../common/quantity_format.dart';
 import '../../widgets/CommonAppBar.dart';
 import '../../widgets/CommonFloatingActionButton.dart';
 import '../../widgets/WakelockToggle.dart';
+import '../ShoppingListMutations.dart';
 import '../ShoppingListRepository.dart';
 import '../domain/Product.dart';
 import '../domain/ProductOrderStrategy.dart';
 import '../domain/ShoppingItem.dart';
 import '../domain/ShoppingList.dart';
-import '../domain/Unit.dart';
+import '../widgets/RenameShoppingListDialog.dart';
+import '../widgets/ShoppingItemDialog.dart';
 import 'ShoppingListDetailBloc.dart';
 import 'ShoppingListDetailEvent.dart';
 import 'ShoppingListDetailState.dart';
+
+enum _ListMenuAction { rename, sortByCommon }
 
 class ShoppingListDetailScreen extends StatelessWidget {
   final ShoppingList shoppingList;
@@ -30,52 +35,87 @@ class ShoppingListDetailScreen extends StatelessWidget {
         listener: (context, state) {},
         child: Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
-          appBar: CommonAppBar(
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            title: shoppingList.title,
-            actions: [
-              const WakelockToggle(onAppBar: true,),
-              Builder(
-                builder: (context) {
-                  return PopupMenuButton<ProductOrderStrategy>(
-                    icon: const Icon(Icons.sort),
-                    onSelected: (strategy) {
-                      final bloc = context.read<ShoppingListDetailBloc>();
-                      final state = bloc.state;
-                      if (state is LoadedShoppingListDetailState) {
-                        final updatedList = state.shoppingList
-                            .copyWith(orderStrategy: strategy);
-                        bloc.add(UpdateShoppingListEvent(updatedList));
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem<ProductOrderStrategy>(
-                        value: ProductOrderStrategy.COMMON_ORDER,
-                        onTap: () => context
-                            .read<ShoppingListDetailBloc>()
-                            .add(ReorderByCommonEvent()),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.swap_vert, size: 20),
-                            SizedBox(width: 12),
-                            Text('Nach Beliebtheit sortieren'),
-                          ],
+          appBar: PreferredSize(
+            preferredSize: const Size.fromHeight(kToolbarHeight),
+            // Der Titel haengt am State, damit ein neuer Name sofort erscheint.
+            child: BlocBuilder<ShoppingListDetailBloc, ShoppingListsDetailState>(
+              buildWhen: (previous, current) =>
+                  _titleOf(previous) != _titleOf(current),
+              builder: (context, state) {
+                return CommonAppBar(
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  title: _titleOf(state) ?? shoppingList.title,
+                  actions: [
+                    const WakelockToggle(onAppBar: true,),
+                    PopupMenuButton<_ListMenuAction>(
+                      icon: const Icon(Icons.more_vert),
+                      onSelected: (action) => _onMenuAction(context, action),
+                      itemBuilder: (context) => const [
+                        PopupMenuItem<_ListMenuAction>(
+                          value: _ListMenuAction.rename,
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined, size: 20),
+                              SizedBox(width: 12),
+                              // Flexible: bei grosser Systemschrift umbrechen
+                              // statt aus dem Menue zu laufen.
+                              Flexible(child: Text('Liste umbenennen')),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
+                        PopupMenuItem<_ListMenuAction>(
+                          value: _ListMenuAction.sortByCommon,
+                          child: Row(
+                            children: [
+                              Icon(Icons.swap_vert, size: 20),
+                              SizedBox(width: 12),
+                              Flexible(
+                                  child: Text('Nach Beliebtheit sortieren')),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
           floatingActionButton: _floatingActionButton(),
           body: _shoppingListDetailPage(),
         ),
       ),
     );
+  }
+
+  static String? _titleOf(ShoppingListsDetailState state) =>
+      state is LoadedShoppingListDetailState ? state.shoppingList.title : null;
+
+  Future<void> _onMenuAction(
+      BuildContext context, _ListMenuAction action) async {
+    final bloc = context.read<ShoppingListDetailBloc>();
+    final state = bloc.state;
+    if (state is! LoadedShoppingListDetailState) return;
+
+    switch (action) {
+      case _ListMenuAction.rename:
+        final title = await showRenameShoppingListDialog(
+          context,
+          currentTitle: state.shoppingList.title,
+        );
+        if (title != null) bloc.add(RenameShoppingListEvent(title));
+        break;
+      case _ListMenuAction.sortByCommon:
+        // Wie bisher zwei Schritte: Raenge nach Laden-Reihenfolge neu
+        // vergeben und die Strategie an der Liste merken.
+        bloc.add(ReorderByCommonEvent());
+        bloc.add(UpdateShoppingListEvent(state.shoppingList
+            .copyWith(orderStrategy: ProductOrderStrategy.COMMON_ORDER)));
+        break;
+    }
   }
 
   Widget _floatingActionButton() {
@@ -95,157 +135,67 @@ class ShoppingListDetailScreen extends StatelessWidget {
   }
 
   Future<void> _showAddItemDialog(BuildContext context) async {
-    final nameController = TextEditingController();
-    final quantityController = TextEditingController(text: "1");
-    Unit unit = Unit.piece;
-    ProductCategory category = ProductCategory.OTHER;
-
     final bloc = context.read<ShoppingListDetailBloc>();
+    final state = bloc.state;
+    if (state is! LoadedShoppingListDetailState) return;
 
-    int nextRank = 0;
+    final input = await showShoppingItemDialog(
+      context,
+      allIngredients: state.allIngredients,
+    );
+    if (input == null) return;
 
-    final currentState = bloc.state;
-    if (currentState is LoadedShoppingListDetailState &&
-        currentState.shoppingList.shoppingItems.isNotEmpty) {
-      nextRank = currentState.shoppingList.shoppingItems
-              .map((item) => item.rank)
-              .reduce((a, b) => a > b ? a : b) +
-          1;
-    }
+    // Stand von JETZT: waehrend der Dialog offen war, kann sich die Liste
+    // geaendert haben.
+    final current = bloc.state;
+    if (current is! LoadedShoppingListDetailState) return;
 
-    await showDialog(
-      context: context,
-      builder: (ctx) {
-        final state = bloc.state;
-        Map<String, List<String>> allIngredients = {};
-        if (state is LoadedShoppingListDetailState) {
-          allIngredients = state.allIngredients;
-        }
-        final flatIngredients =
-            allIngredients.values.expand((list) => list).toList();
+    bloc.add(
+      AddShoppingListItemEvent(
+        ShoppingItem(
+          id: 0,
+          product: Product(name: input.name, category: input.category),
+          quantity: input.quantity,
+          unit: input.unit.label,
+          checked: false,
+          rank: nextRank(current.shoppingList.shoppingItems),
+        ),
+        current.shoppingList.id,
+      ),
+    );
+  }
 
-        return AlertDialog(
-          title: const Text("Produkt hinzufügen"),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Autocomplete<String>(
-                  optionsBuilder: (textEditingValue) {
-                    if (textEditingValue.text.isEmpty) {
-                      return const Iterable<String>.empty();
-                    }
-                    return flatIngredients.where((option) => option
-                        .toLowerCase()
-                        .contains(textEditingValue.text.toLowerCase()));
-                  },
-                  onSelected: (selection) {
-                    nameController.text = selection;
-                    final catKey = allIngredients.entries
-                        .firstWhere(
-                          (entry) => entry.value.contains(selection),
-                          orElse: () => const MapEntry('OTHER', []),
-                        )
-                        .key;
+  Future<void> _showEditItemDialog(
+    BuildContext context,
+    ShoppingItem item,
+  ) async {
+    final bloc = context.read<ShoppingListDetailBloc>();
+    final state = bloc.state;
+    if (state is! LoadedShoppingListDetailState) return;
 
-                    category = ProductCategory.values.firstWhere(
-                      (c) => c.name.toLowerCase() == catKey.toLowerCase(),
-                      orElse: () => ProductCategory.OTHER,
-                    );
-                  },
-                  fieldViewBuilder: (context, controller, focusNode, _) {
-                    controller.addListener(() {
-                      nameController.text = controller.text;
-                    });
-                    return TextField(
-                      controller: controller,
-                      textCapitalization: TextCapitalization.sentences,
-                      focusNode: focusNode,
-                      decoration: const InputDecoration(
-                        labelText: "Name",
-                        border: OutlineInputBorder(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: quantityController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: "Menge",
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<Unit>(
-                  value: unit,
-                  items: Unit.values
-                      .map(
-                        (u) => DropdownMenuItem(
-                          value: u,
-                          child: Text(u.label),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) unit = val;
-                  },
-                  decoration: const InputDecoration(
-                    labelText: "Einheit",
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text("Abbrechen"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final name = nameController.text.trim();
-                final qty = double.tryParse(quantityController.text) ?? 1;
+    final input = await showShoppingItemDialog(
+      context,
+      allIngredients: state.allIngredients,
+      existing: item,
+    );
+    if (input == null) return;
 
-                if (name.isNotEmpty) {
-                  // Kategorie aus Liste suchen, sonst OTHER
-                  final catKey = allIngredients.entries
-                      .firstWhere(
-                        (entry) => entry.value.contains(name),
-                    orElse: () => const MapEntry('OTHER', []),
-                  )
-                      .key;
+    // Vom aktuellen Eintrag ausgehen (er koennte inzwischen abgehakt oder
+    // verschoben worden sein) und nur die bearbeiteten Felder ersetzen.
+    final current = bloc.state;
+    final latest = current is LoadedShoppingListDetailState
+        ? current.shoppingList.shoppingItems
+            .firstWhere((i) => i.id == item.id, orElse: () => item)
+        : item;
 
-                  final resolvedCategory = ProductCategory.values.firstWhere(
-                        (c) => c.name.toLowerCase() == catKey.toLowerCase(),
-                    orElse: () => ProductCategory.OTHER,
-                  );
-
-                  bloc.add(
-                    AddShoppingListItemEvent(
-                      ShoppingItem(
-                        id: 0,
-                        product: Product(name: name, category: resolvedCategory),
-                        quantity: qty,
-                        unit: unit.name,
-                        checked: false,
-                        rank: nextRank,
-                      ),
-                      state is LoadedShoppingListDetailState
-                          ? state.shoppingList.id
-                          : 0,
-                    ),
-                  );
-                }
-                Navigator.of(ctx).pop();
-              },
-              child: const Text("Hinzufügen"),
-            ),
-          ],
-        );
-      },
+    bloc.add(
+      EditShoppingListItemEvent(
+        latest.copyWith(
+          product: Product(name: input.name, category: input.category),
+          quantity: input.quantity,
+          unit: input.unit.label,
+        ),
+      ),
     );
   }
 
@@ -260,12 +210,8 @@ class ShoppingListDetailScreen extends StatelessWidget {
           }
 
           // ── Anzeige-Sortierung: unchecked zuerst, dann checked.
-          // Innerhalb jeder Gruppe bleibt die bestehende Reihenfolge erhalten
-          // (stabiler Sort dank indexierter Basis).
-          final displayItems = [...items]..sort((a, b) {
-            if (a.checked == b.checked) return 0; // Reihenfolge beibehalten
-            return a.checked ? 1 : -1;            // checked nach unten
-          });
+          // Innerhalb jeder Gruppe bleibt die bestehende Reihenfolge erhalten.
+          final displayItems = inDisplayOrder(items);
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -309,6 +255,14 @@ class ShoppingListDetailScreen extends StatelessWidget {
       ShoppingItem item,
       LoadedShoppingListDetailState state,
       ) {
+    void toggle(bool? value) {
+      context.read<ShoppingListDetailBloc>().add(
+        ToggleShoppingListItemEvent(
+          item.copyWith(checked: value ?? !item.checked),
+        ),
+      );
+    }
+
     return Dismissible(
       key: ValueKey(item.id),
       direction: DismissDirection.endToStart,
@@ -334,28 +288,82 @@ class ShoppingListDetailScreen extends StatelessWidget {
         child: AnimatedOpacity(
           duration: const Duration(milliseconds: 300),
           opacity: item.checked ? 0.5 : 1.0,
-          child: CheckboxListTile(
-            value: item.checked,
-            title: Text(
-              item.product.name,
-              style: TextStyle(
-                decoration:
-                item.checked ? TextDecoration.lineThrough : null,
-                color: item.checked ? Colors.grey.shade700 : null,
+          // Eigenes (durchsichtiges) Material, damit der Tipp-Effekt UEBER dem
+          // grauen Hintergrund abgehakter Zeilen gezeichnet wird.
+          child: Material(
+            type: MaterialType.transparency,
+            child: ListTile(
+              // Antippen hakt ab - wie vorher bei der CheckboxListTile.
+              onTap: () => toggle(null),
+              // "3 Stück Äpfel", "50g Mehl"
+              title: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '${_formatItemAmount(item)} ',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    TextSpan(
+                      text: item.product.name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                style: TextStyle(
+                  decoration: item.checked
+                      ? TextDecoration.lineThrough
+                      : null,
+                  color: item.checked
+                      ? Colors.grey.shade700
+                      : Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: 'Bearbeiten',
+                    onPressed: () => _showEditItemDialog(context, item),
+                  ),
+                  Checkbox(
+                    value: item.checked,
+                    onChanged: toggle,
+                  ),
+                ],
               ),
             ),
-            subtitle: Text('${item.quantity} ${item.unit}'),
-            onChanged: (value) {
-              context.read<ShoppingListDetailBloc>().add(
-                ToggleShoppingListItemEvent(
-                  item.copyWith(checked: value ?? false),
-                ),
-              );
-            },
           ),
         ),
       ),
     );
+  }
+
+  String _formatItemAmount(ShoppingItem item) {
+    final quantity = item.quantity.toDouble();
+
+    final amount = quantity == quantity.roundToDouble()
+        ? quantity.toInt().toString()
+        : quantity.toString().replaceAll('.', ',');
+
+    final unit = item.unit.trim();
+    final normalizedUnit = unit.toLowerCase();
+
+    if (normalizedUnit == 'stück' ||
+        normalizedUnit == 'stk.' ||
+        normalizedUnit == 'stk' ||
+        normalizedUnit.isEmpty) {
+      return '${amount}x';
+    }
+
+    return '$amount $unit';
   }
 
 }

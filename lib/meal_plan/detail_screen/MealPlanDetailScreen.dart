@@ -25,6 +25,17 @@ class MealPlanDetailScreen extends StatelessWidget {
       ),
       child: BlocListener<MealPlanDetailBloc, MealPlansDetailState>(
         listener: (context, state) {
+          if (state is LoadedMealPlanDetailState && state.notice != null) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.notice!),
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
+                showCloseIcon: true,
+              ),
+            );
+          }
         },
         child: Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
@@ -57,17 +68,9 @@ class MealPlanDetailScreen extends StatelessWidget {
   Widget _shoppingListFab(BuildContext context) {
     return FloatingActionButton(
       onPressed: () {
+        // Die Rueckmeldung kommt vom Bloc, sobald der Server geantwortet hat.
         context.read<MealPlanDetailBloc>().add(
           GenerateShoppingListEvent(),
-        );
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Einkaufsliste wurde erstellt'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
-            showCloseIcon: true,
-          ),
         );
       },
       child: const Icon(Icons.add_shopping_cart),

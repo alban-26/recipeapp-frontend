@@ -25,6 +25,10 @@ class CreateRecipeState {
   final Map<String, List<String>> allIngredients;
   final bool isScanning;
 
+  /// Zaehlt hoch, wenn Scan oder Import den ganzen Inhalt ersetzen. Die
+  /// Eingabefelder der Schritte haengen daran, damit sie den neuen Text zeigen.
+  final int contentVersion;
+
   CreateRecipeState({
     this.imageToUpload,
     this.isImageChanged = false,
@@ -36,7 +40,8 @@ class CreateRecipeState {
     imageError = '',
     required this.recipe,
     this.allIngredients = const {},
-    this.isScanning = false
+    this.isScanning = false,
+    this.contentVersion = 0,
   }) : imageSourceActionSheetIsVisible = imageSourceActionSheetIsVisible;
 
   CreateRecipeState copyWith({
@@ -55,7 +60,8 @@ class CreateRecipeState {
     bool? imageChanged,
     Recipe? recipe,
     Map<String, List<String>>? allIngredients,
-    bool? isScanning
+    bool? isScanning,
+    int? contentVersion,
   }) {
     return CreateRecipeState(
       imageToUpload: imageToUpload ?? this.imageToUpload,
@@ -67,7 +73,8 @@ class CreateRecipeState {
       imageError: imageError ?? this.imageError,
       recipe: recipe ?? this.recipe,
       allIngredients: allIngredients ?? this.allIngredients ?? const {},
-      isScanning: isScanning ?? this.isScanning
+      isScanning: isScanning ?? this.isScanning,
+      contentVersion: contentVersion ?? this.contentVersion,
     );
   }
 
@@ -94,7 +101,8 @@ class CreateRecipeState {
       imageError: imageError ?? this.imageError,
       recipe: recipe,
       allIngredients: allIngredients ?? this.allIngredients,
-        isScanning: isScanning ?? this.isScanning
+        isScanning: isScanning ?? this.isScanning,
+      contentVersion: this.contentVersion,
     );
   }
 }

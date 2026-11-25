@@ -77,7 +77,10 @@ class AppNavigator extends StatelessWidget {
               if (state is UnknownSessionState)
                 const MaterialPage(child: LoadingScreen()),
 
-              if (state is Unauthenticated)
+              // Alles, was weder "lade noch" noch "angemeldet" ist, gehoert auf
+              // den Login. Ohne diesen Auffang war die Seitenliste bei anderen
+              // States (z.B. AuthErrorState) leer und die App blieb haengen.
+              if (state is! UnknownSessionState && state is! Authenticated)
                 MaterialPage(
                   child: BlocProvider(
                     create: (context) => AuthCubit(

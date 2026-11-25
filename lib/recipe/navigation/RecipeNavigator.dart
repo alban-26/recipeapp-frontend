@@ -4,6 +4,7 @@ import 'package:recipeapp_frontend/recipe/create_screen/CreateRecipeScreen.dart'
 
 import '../RecipeRepository.dart';
 import '../detail_screen/RecipeScreen.dart';
+import '../import/SharedRecipeLinks.dart';
 import '../list_screen/RecipesScreen.dart';
 import 'RecipeNavigatorCubit.dart';
 
@@ -20,7 +21,8 @@ class RecipeNavigator extends StatelessWidget {
     return BlocProvider(
       create: (context) =>
           RecipeNavigatorCubit(dataRepo: context.read<RecipeRepository>()),
-      child: BlocBuilder<RecipeNavigatorCubit, RecipeNavigatorState>(
+      child: _SharedLinkListener(
+        child: BlocBuilder<RecipeNavigatorCubit, RecipeNavigatorState>(
         builder: (context, state) {
           return Navigator(
             key: navigatorKey,
@@ -33,7 +35,11 @@ class RecipeNavigator extends StatelessWidget {
 
               if (state is RecipeCreateState)
                 MaterialPage(
-                  child: CreateRecipeScreen(recipe: state.recipe),
+                  key: state.importRequest == null ? null : ObjectKey(state.importRequest),
+                  child: CreateRecipeScreen(
+                    recipe: state.recipe,
+                    importText: state.importText,
+                  ),
                 ),
             ],
             onPopPage: (route, result) {
@@ -58,7 +64,45 @@ class RecipeNavigator extends StatelessWidget {
             },
           );
         },
+        ),
       ),
     );
   }
+}
+
+/// Oeffnet fuer einen geteilten Link das Formular "Rezept erstellen" mit Import.
+class _SharedLinkListener extends StatefulWidget {
+  const _SharedLinkListener({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_SharedLinkListener> createState() => _SharedLinkListenerState();
+}
+
+class _SharedLinkListenerState extends State<_SharedLinkListener> {
+  late final SharedRecipeLinks _links = context.read<SharedRecipeLinks>();
+
+  @override
+  void initState() {
+    super.initState();
+    _links.pending.addListener(_handle);
+    // Schon vor der Anmeldung geteilt: jetzt abholen.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handle());
+  }
+
+  @override
+  void dispose() {
+    _links.pending.removeListener(_handle);
+    super.dispose();
+  }
+
+  void _handle() {
+    if (!mounted || _links.pending.value == null) return;
+    final text = _links.take();
+    if (text != null) context.read<RecipeNavigatorCubit>().showImportRecipe(text);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

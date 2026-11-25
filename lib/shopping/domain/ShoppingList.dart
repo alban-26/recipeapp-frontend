@@ -20,10 +20,10 @@ class ShoppingList extends Equatable {
 
   factory ShoppingList.fromJson(Map<String, dynamic> json) {
     return ShoppingList(
-      id: json['id'],
-      title: json['title'],
-      shoppingItems: (json['shoppingItems'] as List)
-          .map((e) => ShoppingItem.fromJson(e))
+      id: (json['id'] as num).toInt(),
+      title: json['title'] ?? '',
+      shoppingItems: (json['shoppingItems'] as List? ?? const [])
+          .map((e) => ShoppingItem.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList(),
       createdAt: DateTime.parse(json['createdAt']),
       orderStrategy: ProductOrderStrategyExtension.fromApi(

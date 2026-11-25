@@ -16,7 +16,9 @@ class LoadedShoppingListState extends ShoppingListState {
 class CreateShoppingListState extends ShoppingListState {}
 
 class FailedToLoadShoppingListState extends ShoppingListState {
-  Error error;
+  // Object statt Error: Netzwerkfehler (DioException) sind Exceptions und
+  // wurden vorher gar nicht abgefangen - die Seite blieb beim Ladekreis haengen.
+  Object error;
 
   FailedToLoadShoppingListState({required this.error});
 }

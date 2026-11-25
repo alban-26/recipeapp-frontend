@@ -7,7 +7,12 @@ import 'TokenStore.dart';
 /// Refresh Token ist serverseitig endgueltig ungueltig -> ausloggen.
 class SessionExpiredException implements Exception {
   final String reason;
-  SessionExpiredException(this.reason);
+
+  /// Stand von [TokenStore.epoch], als der Refresh begann - damit nur genau
+  /// DIESE Session beendet wird und nicht ein inzwischen erfolgter neuer Login.
+  final int epoch;
+
+  SessionExpiredException(this.reason, {required this.epoch});
   @override
   String toString() => 'SessionExpiredException: $reason';
 }
@@ -53,6 +58,7 @@ class AuthInterceptor extends Interceptor {
     '/users/refresh',
     '/users/register',
     '/users/forgot-password',
+    '/users/logout',
   ];
 
   static const _retryFlag = '__auth_retried';
@@ -89,10 +95,17 @@ class AuthInterceptor extends Interceptor {
     if (!shouldRefresh) return handler.next(err);
 
     // --- Block 1: Refresh -------------------------------------------------
+    // Hat ein paralleler Request den Token inzwischen schon erneuert? Dann
+    // ist dieser 401 Schnee von gestern und es reicht, mit dem aktuellen
+    // Token zu wiederholen - ohne einen weiteren Refresh auszuloesen.
+    final currentToken = await tokenStore.readAccessToken();
+    final alreadyRefreshed = currentToken != null &&
+        options.headers['Authorization'] != 'Bearer $currentToken';
+
     try {
-      await _refreshSingleFlight();
+      if (!alreadyRefreshed) await _refreshSingleFlight();
     } on SessionExpiredException catch (e) {
-      await tokenStore.expire(e.reason);
+      await tokenStore.expire(e.reason, ifEpoch: e.epoch);
       return handler.next(err);
     } on TemporaryAuthFailure catch (e) {
       print('[AuthInterceptor] Refresh vorerst fehlgeschlagen, '
@@ -140,9 +153,18 @@ class AuthInterceptor extends Interceptor {
   }
 
   Future<void> _performRefresh() async {
-    final refreshToken = await tokenStore.readRefreshToken();
+    final epoch = tokenStore.epoch;
+
+    final String? refreshToken;
+    try {
+      refreshToken = await tokenStore.readRefreshToken();
+    } on TokenStorageException catch (e) {
+      // Speicher nicht lesbar heisst nicht "kein Token" - Session behalten.
+      throw TemporaryAuthFailure('Token-Speicher nicht lesbar: ${e.cause}');
+    }
     if (refreshToken == null) {
-      throw SessionExpiredException('kein Refresh Token im Storage');
+      throw SessionExpiredException('kein Refresh Token im Storage',
+          epoch: epoch);
     }
 
     final Response response;
@@ -172,15 +194,48 @@ class AuthInterceptor extends Interceptor {
       if (access == null || refresh == null) {
         throw TemporaryAuthFailure('Antwort ohne Tokens (HTTP 200)');
       }
-      await tokenStore.save(accessToken: access, refreshToken: refresh);
+      final saved = await tokenStore.saveIfCurrent(
+        epoch,
+        accessToken: access,
+        refreshToken: refresh,
+      );
+      if (!saved) {
+        // Waehrend des Refreshs wurde aus- oder neu eingeloggt.
+        throw TemporaryAuthFailure('Session hat sich waehrend des Refreshs geaendert');
+      }
       print('[AuthInterceptor] Refresh ok');
       return;
     }
 
-    if (status == 400 || status == 401) {
-      throw SessionExpiredException('Server lehnte Refresh Token ab (HTTP $status)');
+    if (isRefreshTokenRejected(status, response.data)) {
+      throw SessionExpiredException(
+          'Server lehnte Refresh Token ab (HTTP $status)',
+          epoch: epoch);
     }
 
-    throw TemporaryAuthFailure('Serverfehler beim Refresh (HTTP $status)');
+    throw TemporaryAuthFailure('Refresh fehlgeschlagen (HTTP $status)');
+  }
+
+  /// Hat der Server den Refresh Token ENDGUELTIG abgelehnt?
+  ///
+  /// Nur dann darf ausgeloggt werden. Der Statuscode allein reicht dafuer
+  /// nicht: der user-management-Service hat lange fuer JEDEN Fehler
+  /// "400 invalid_grant" geschickt - auch wenn bloss Keycloak kurz nicht
+  /// erreichbar war. Jeder, dessen Access Token in so einem Moment ablief,
+  /// wurde ausgeloggt.
+  static bool isRefreshTokenRejected(int status, Object? body) {
+    if (status != 400 && status != 401) return false;
+    if (body is! Map) return false;
+
+    // Aktueller Server: sagt es ausdruecklich.
+    final explicit = body['session_expired'];
+    if (explicit is bool) return explicit;
+
+    // Aelterer Server: Keycloaks Antwort steckt nur in der Beschreibung.
+    // "Refresh failed: 400" = Keycloak hat den Token abgelehnt. Alles andere
+    // ("Refresh failed: 503", "Connection refused: ...") war ein Problem
+    // zwischen Service und Keycloak und sagt nichts ueber die Session.
+    return body['error'] == 'invalid_grant' &&
+        body['error_description'] == 'Refresh failed: 400';
   }
 }

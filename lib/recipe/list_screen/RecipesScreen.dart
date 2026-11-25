@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../common/error_messages.dart';
+import '../../offline/ConnectionStatus.dart';
 import '../../widgets/AnimatedEmptyState.dart';
 import '../../widgets/CommonAppBar.dart';
 import '../../widgets/CommonFloatingActionButton.dart';
@@ -30,6 +31,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
     super.initState();
     _recipesBloc = RecipesBloc(
       dataRepo: context.read<RecipeRepository>(),
+      connectionStatus: context.read<ConnectionStatus>(),
     )..add(LoadRecipesEvent())
       ..add(LoadTagsEvent()
     );
@@ -465,6 +467,18 @@ class _RecipesScreenState extends State<RecipesScreen> {
               BlocProvider.of<RecipesBloc>(context).add(RecipeDeleted(recipe));
             },
             confirmDismiss: (_) async {
+              // Loeschen geht nur mit Verbindung - lieber gleich sagen, als
+              // das Rezept erst verschwinden und dann wieder auftauchen zu lassen.
+              if (context.read<ConnectionStatus>().isOffline) {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        'Rezepte können nur mit Internetverbindung gelöscht werden.'),
+                  ),
+                );
+                return false;
+              }
               return await showDialog(
                 context: context,
                 builder: (BuildContext context) => AlertDialog(
